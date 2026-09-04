@@ -9,12 +9,11 @@ import { Sparkles, ArrowRight, ShieldCheck, Zap, Users, Loader2 } from "lucide-r
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, demoLogin } = useAuth();
+  const { login } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [demoLoading, setDemoLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,15 +21,6 @@ export default function LoginPage() {
     setLoading(true);
     const ok = await login(email.trim(), password);
     setLoading(false);
-    if (ok) {
-      router.push("/dashboard");
-    }
-  };
-
-  const handleDemo = async (role: "FREELANCER" | "AGENCY") => {
-    setDemoLoading(true);
-    const ok = await demoLogin(role);
-    setDemoLoading(false);
     if (ok) {
       router.push("/dashboard");
     }
@@ -90,7 +80,7 @@ export default function LoginPage() {
 
             <Button
               type="submit"
-              disabled={loading || demoLoading}
+              disabled={loading}
               className="w-full h-11 text-sm font-medium gap-2 mt-2 shadow-md shadow-primary/20 cursor-pointer"
             >
               {loading ? (
@@ -105,36 +95,7 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Quick Demo Access */}
-          <div className="mt-4 pt-4 border-t border-border/60">
-            <div className="text-[11px] text-center text-muted-foreground uppercase tracking-wider font-semibold mb-2.5">
-              Or Try Instant Live Demo
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={loading || demoLoading}
-                onClick={() => handleDemo("FREELANCER")}
-                className="text-xs h-9 border-primary/30 text-foreground hover:bg-primary/10"
-              >
-                Freelancer Demo
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={loading || demoLoading}
-                onClick={() => handleDemo("AGENCY")}
-                className="text-xs h-9 border-primary/30 text-foreground hover:bg-primary/10"
-              >
-                Agency Demo
-              </Button>
-            </div>
-          </div>
-
-          <div className="mt-4 text-center text-xs text-muted-foreground border-t border-border/60 pt-4">
+          <div className="mt-6 text-center text-xs text-muted-foreground border-t border-border/60 pt-4">
             Don&apos;t have an account yet?{" "}
             <Link href="/signup" className="text-primary font-semibold hover:underline">
               Create a free account
