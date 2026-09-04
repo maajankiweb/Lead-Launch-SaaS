@@ -1,0 +1,125 @@
+{
+  "users": [
+    {
+      "email": "demo.agency@lead-to-launch.io",
+      "name": "Apex Growth Agency",
+      "passwordHash": "$2b$10$DZT9dPtbf3o6QkqavFLBw.ciq1GBt.1KEdbTf8A33TFt4N30xLw2G",
+      "role": "AGENCY",
+      "plan": "AGENCY_SCALE",
+      "agencyName": "Apex Digital & Web Studio",
+      "id": "cn02ykjvqmte4qth0",
+      "createdAt": "2026-08-29T08:39:54.036Z",
+      "updatedAt": "2026-08-29T08:39:54.036Z"
+    },
+    {
+      "email": "demo.freelancer@lead-to-launch.io",
+      "name": "Alex Rivera (Freelancer)",
+      "passwordHash": "$2b$10$C18p8.SRDoOTz4/ISbz6H.JydBwPiuO.SkXmcz2HBVANMCQaHjXKq",
+      "role": "FREELANCER",
+      "plan": "PRO",
+      "agencyName": null,
+      "id": "c81xb0fdfmte4vkyn",
+      "createdAt": "2026-08-29T08:43:36.287Z",
+      "updatedAt": "2026-08-29T08:43:36.287Z"
+    }
+  ],
+  "campaigns": [
+    {
+      "userId": "cn02ykjvqmte4qth0",
+      "title": "Austin High-Ticket Dental Clinics",
+      "niche": "Dental & Orthodontics",
+      "location": "Austin, TX",
+      "status": "active",
+      "id": "clwrgn8d5mte4qth3",
+      "createdAt": "2026-08-29T08:39:54.039Z",
+      "updatedAt": "2026-08-29T08:39:54.039Z"
+    },
+    {
+      "userId": "c81xb0fdfmte4vkyn",
+      "title": "Miami Boutique Gyms & Spas",
+      "niche": "Fitness & Wellness",
+      "location": "Miami, FL",
+      "status": "active",
+      "id": "cq17pj604mte4vkyr",
+      "createdAt": "2026-08-29T08:43:36.291Z",
+      "updatedAt": "2026-08-29T08:43:36.291Z"
+    }
+  ],
+  "leads": [],
+  "audits": [],
+  "pitches": [],
+  "deals": [
+    {
+      "userId": "cn02ykjvqmte4qth0",
+      "clientName": "Dr. Robert Vance",
+      "company": "Vance Family Dental",
+      "service": "Modern Next.js Website & Local SEO Package",
+      "value": 2800,
+      "stage": "proposal",
+      "notes": "Sent high-converting audit report and video walkthrough. Meeting booked for Thursday.",
+      "id": "cpwdz5c78mte4qth5",
+      "createdAt": "2026-08-29T08:39:54.041Z",
+      "updatedAt": "2026-08-29T08:39:54.041Z"
+    },
+    {
+      "userId": "cn02ykjvqmte4qth0",
+      "clientName": "Sarah Jenkins",
+      "company": "Elevate Pilates Studio",
+      "service": "Complete Website Redesign & Booking Engine",
+      "value": 3500,
+      "stage": "meeting",
+      "notes": "Expressed interest in mobile responsiveness and online booking speed.",
+      "id": "ck1vp2so8mte4qth5",
+      "createdAt": "2026-08-29T08:39:54.041Z",
+      "updatedAt": "2026-08-29T08:39:54.041Z"
+    },
+    {
+      "userId": "cn02ykjvqmte4qth0",
+      "clientName": "Marcus Sterling",
+      "company": "Sterling Law Group",
+      "service": "Retainer - SEO & Content Optimization",
+      "value": 1800,
+      "stage": "won",
+      "notes": "Closed 3-month retainer contract! First invoice paid.",
+      "id": "ct2m1fyuwmte4qth5",
+      "createdAt": "2026-08-29T08:39:54.041Z",
+      "updatedAt": "2026-08-29T08:39:54.041Z"
+    },
+    {
+      "userId": "c81xb0fdfmte4vkyn",
+      "clientName": "Dr. Robert Vance",
+      "company": "Vance Family Dental",
+      "service": "Modern Next.js Website & Local SEO Package",
+      "value": 2800,
+      "stage": "proposal",
+      "notes": "Sent high-converting audit report and video walkthrough. Meeting booked for Thursday.",
+      "id": "cmx7h994tmte4vkyu",
+      "createdAt": "2026-08-29T08:43:36.294Z",
+      "updatedAt": "2026-08-29T08:43:36.294Z"
+    },
+    {
+      "userId": "c81xb0fdfmte4vkyn",
+      "clientName": "Sarah Jenkins",
+      "company": "Elevate Pilates Studio",
+      "service": "Complete Website Redesign & Booking Engine",
+      "value": 3500,
+      "stage": "meeting",
+      "notes": "Expressed interest in mobile responsiveness and online booking speed.",
+      "id": "cke3udrugmte4vkyu",
+      "createdAt": "2026-08-29T08:43:36.294Z",
+      "updatedAt": "2026-08-29T08:43:36.294Z"
+    },
+    {
+      "userId": "c81xb0fdfmte4vkyn",
+      "clientName": "Marcus Sterling",
+      "company": "Sterling Law Group",
+      "service": "Retainer - SEO & Content Optimization",
+      "value": 1800,
+      "stage": "won",
+      "notes": "Closed 3-month retainer contract! First invoice paid.",
+      "id": "cxk8iwpvzmte4vkyu",
+      "createdAt": "2026-08-29T08:43:36.294Z",
+      "updatedAt": "2026-08-29T08:43:36.294Z"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "lead-to-launch-root",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Lead & Launch SaaS - AI-Powered Client Acquisition OS for Web Design Freelancers & Growth Agencies",
+  "scripts": {
+    "dev": "npm --prefix app run dev",
+    "build": "npm --prefix app run build",
+    "start": "npm --prefix app run start",
+    "lint": "npm --prefix app run lint",
+    "install:app": "npm --prefix app install",
+    "db:clean": "node app/scripts/clean-dummy-db.js"
+  },
+  "keywords": [
+    "saas",
+    "freelancer",
+    "agency",
+    "lead-generation",
+    "nextjs",
+    "mongodb"
+  ],
+  "author": "MaaJanki Web Tech",
+  "license": "MIT"
+}

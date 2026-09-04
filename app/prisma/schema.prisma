@@ -1,0 +1,117 @@
+// Prisma schema for Lead -> Launch SaaS
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  name          String
+  passwordHash  String
+  role          String     @default("FREELANCER") // FREELANCER | AGENCY | ADMIN
+  plan          String     @default("FREE")       // FREE | PRO | AGENCY_SCALE
+  agencyName    String?
+  agencyLogo    String?
+  apiKeyClaude  String?
+  apiKeyOpenAI  String?
+  apiKeyGoogle  String?
+  
+  campaigns     Campaign[]
+  deals         Deal[]
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model Campaign {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  niche       String
+  location    String
+  status      String   @default("active") // active | completed | archived
+  leads       Lead[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Lead {
+  id               String    @id @default(cuid())
+  campaignId       String
+  campaign         Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  name             String
+  category         String?
+  address          String?
+  phone            String?
+  website          String?
+  rating           Float?
+  reviews          Int?
+  email            String?
+  instagram        String?
+  facebook         String?
+  linkedin         String?
+  status           String    @default("new") // new | audited | ranked | pitched | crm_active
+  opportunityScore Int?
+  opportunityNotes String?
+  
+  audit            Audit?
+  pitch            Pitch?
+  deals            Deal[]
+  
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model Audit {
+  id             String   @id @default(cuid())
+  leadId         String   @unique
+  lead           Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  score          Int      @default(0)
+  desktopSpeed   Int      @default(0)
+  mobileSpeed    Int      @default(0)
+  seoScore       Int      @default(0)
+  ssl            Boolean  @default(false)
+  mobileFriendly Boolean  @default(false)
+  cmsDetected    String?
+  issues         String   @default("[]") // JSON stringified array of issues
+  improvements   String   @default("[]") // JSON stringified array of recommendations
+  techStack      String   @default("[]") // JSON stringified array of tech
+  createdAt      DateTime @default(now())
+}
+
+model Pitch {
+  id                String   @id @default(cuid())
+  leadId            String   @unique
+  lead              Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  subject           String
+  emailBody         String
+  dmScript          String
+  callScript        String?
+  valueProposition  String
+  pricingSuggestion String
+  createdAt         DateTime @default(now())
+}
+
+model Deal {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leadId      String?
+  lead        Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  clientName  String
+  company     String
+  service     String   @default("Website Redesign & SEO")
+  value       Float    @default(1500)
+  stage       String   @default("lead") // lead | contacted | meeting | proposal | won | lost
+  notes       String?
+  targetDate  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
