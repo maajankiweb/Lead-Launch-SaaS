@@ -1,9 +1,12 @@
 import mongoose, { Schema, model, models } from "mongoose";
 
+const FALLBACK_MONGODB_URI =
+  "mongodb+srv://maajankiweb_db_user:sHc35Zgh6CApQAS3@cluster0.772mcnf.mongodb.net/lead_to_launch?retryWrites=true&w=majority&appName=Cluster0";
+
 const MONGODB_URI =
   process.env.MONGODB_URI ||
   process.env.DATABASE_URL ||
-  "";
+  FALLBACK_MONGODB_URI;
 
 // Global cached connection for Next.js hot-reloading & serverless
 let cached = (global as any).mongoose;
@@ -13,14 +16,16 @@ if (!cached) {
 }
 
 export async function connectDB() {
-  if (cached.conn) {
+  if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
   }
 
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      serverSelectionTimeoutMS: 3000,
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
+      maxPoolSize: 10,
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((m) => {
@@ -32,6 +37,7 @@ export async function connectDB() {
     cached.conn = await cached.promise;
   } catch (e) {
     cached.promise = null;
+    cached.conn = null;
     throw e;
   }
 
