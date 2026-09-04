@@ -3,25 +3,15 @@
   "version": "2.0.0",
   "private": true,
   "description": "Lead & Launch SaaS - AI-Powered Client Acquisition OS for Web Design Freelancers & Growth Agencies",
-  "workspaces": [
-    "app"
-  ],
   "scripts": {
     "dev": "npm --prefix app run dev",
     "build": "npm --prefix app run build",
     "start": "npm --prefix app run start",
-    "lint": "npm --prefix app run lint",
     "install:app": "npm --prefix app install",
     "db:clean": "node app/scripts/clean-dummy-db.js"
   },
   "engines": {
     "node": "22.x"
-  },
-  "dependencies": {
-    "@vercel/analytics": "^2.0.1",
-    "next": "16.2.7",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
   },
   "keywords": [
     "saas",

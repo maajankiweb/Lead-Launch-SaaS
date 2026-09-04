@@ -15,22 +15,32 @@ export type ClaudeResult<T> =
   | { ok: true; data: T }
   | { ok: false; notInstalled?: boolean; error: string };
 
-const CANDIDATE_PATHS = [
-  process.env.CLAUDE_CLI_PATH,
-  path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "npm", "claude.cmd"),
-  path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "npm", "claude"),
-  path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local"), "Programs", "claude", "claude.exe"),
-  path.join(os.homedir(), ".local", "bin", "claude"),
-  path.join(os.homedir(), ".local", "bin", "claude.exe"),
-  path.join(os.homedir(), ".claude", "local", "claude"),
-  "/opt/homebrew/bin/claude",
-  "/usr/local/bin/claude",
-  "/usr/bin/claude",
-].filter(Boolean) as string[];
+function getCandidatePaths(): string[] {
+  const home = os.homedir() || "";
+  const appData = process.env.APPDATA || (home ? path.join(home, "AppData", "Roaming") : "");
+  const localAppData = process.env.LOCALAPPDATA || (home ? path.join(home, "AppData", "Local") : "");
+
+  return [
+    process.env.CLAUDE_CLI_PATH,
+    appData ? path.join(appData, "npm", "claude.cmd") : "",
+    appData ? path.join(appData, "npm", "claude") : "",
+    localAppData ? path.join(localAppData, "Programs", "claude", "claude.exe") : "",
+    home ? path.join(home, ".local", "bin", "claude") : "",
+    home ? path.join(home, ".local", "bin", "claude.exe") : "",
+    home ? path.join(home, ".claude", "local", "claude") : "",
+    "/opt/homebrew/bin/claude",
+    "/usr/local/bin/claude",
+    "/usr/bin/claude",
+  ].filter(Boolean) as string[];
+}
 
 export function resolveClaudeBin(): string | null {
-  for (const c of CANDIDATE_PATHS) {
-    if (existsSync(c)) return c;
+  for (const c of getCandidatePaths()) {
+    try {
+      if (existsSync(c)) return c;
+    } catch {
+      // ignore check errors in restricted serverless environments
+    }
   }
   return null; // not found in known locations
 }
