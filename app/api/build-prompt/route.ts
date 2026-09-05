@@ -5,6 +5,7 @@ import type { RankedLead, BuildPromptResult } from "@/lib/types";
 export const maxDuration = 300;
 
 const PLATFORM_OUTPUT: Record<string, string> = {
+  "google-ai": "Single-file modern HTML5 with Tailwind CSS CDN, Lucide icons, responsive layout, dark/light luxe theme, and embedded JavaScript for mobile interactivity. Optimized for Google AI Studio / Gemini 1.5 & 2.0 Flash.",
   lovable: "Single-page React + Tailwind. No backend. Use placeholder images from unsplash.com.",
   bolt: "Single-page React + Tailwind. No backend. Use placeholder images from unsplash.com.",
   "claude-code": "Next.js 16 app router + Tailwind + shadcn. Single landing page route.",

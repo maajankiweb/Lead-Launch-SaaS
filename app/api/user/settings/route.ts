@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
         apiKeyClaude: true,
         apiKeyOpenAI: true,
         apiKeyGoogle: true,
+        vercelToken: true,
         createdAt: true,
       },
     });
@@ -40,7 +41,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, agencyName, apiKeyClaude, apiKeyOpenAI, apiKeyGoogle, plan } = body;
+    const { name, agencyName, apiKeyClaude, apiKeyOpenAI, apiKeyGoogle, vercelToken, plan } = body;
 
     const updated = await db.user.update({
       where: { id: user.id },
@@ -50,6 +51,7 @@ export async function PUT(req: NextRequest) {
         ...(apiKeyClaude !== undefined && { apiKeyClaude: apiKeyClaude?.trim() || null }),
         ...(apiKeyOpenAI !== undefined && { apiKeyOpenAI: apiKeyOpenAI?.trim() || null }),
         ...(apiKeyGoogle !== undefined && { apiKeyGoogle: apiKeyGoogle?.trim() || null }),
+        ...(vercelToken !== undefined && { vercelToken: vercelToken?.trim() || null }),
         ...(plan !== undefined && { plan }),
       },
       select: {
@@ -60,6 +62,10 @@ export async function PUT(req: NextRequest) {
         plan: true,
         agencyName: true,
         agencyLogo: true,
+        apiKeyClaude: true,
+        apiKeyOpenAI: true,
+        apiKeyGoogle: true,
+        vercelToken: true,
       },
     });
 

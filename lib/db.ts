@@ -63,6 +63,7 @@ const UserSchema = new Schema(
     apiKeyClaude: { type: String, default: null },
     apiKeyOpenAI: { type: String, default: null },
     apiKeyGoogle: { type: String, default: null },
+    vercelToken: { type: String, default: null },
   },
   { timestamps: true }
 );

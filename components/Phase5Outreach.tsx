@@ -58,12 +58,25 @@ export function Phase5Outreach({
   const [activeObjectionIndex, setActiveObjectionIndex] = useState<number | null>(0);
   const lastFor = useRef<string>("");
 
-  // Initialize email from lead
+  // Initialize email & demo URL from lead or previous Phase 4 deployment
   useEffect(() => {
     if (selected?.email) {
       setCustomEmail(selected.email);
     } else {
       setCustomEmail("");
+    }
+
+    if (selected?.id) {
+      const storedDemo = localStorage.getItem(`l2l_demo_url_${selected.id}`) || "";
+      if (storedDemo) {
+        setDemoUrl(storedDemo);
+        setMessage((prev) =>
+          prev ? prev.replace(/https:\/\/lead-launch\.demo\/[^\s]+|\[your-demo-link\]/g, storedDemo) : prev
+        );
+        setFollowUp((prev) =>
+          prev ? prev.replace(/https:\/\/lead-launch\.demo\/[^\s]+|\[your-demo-link\]/g, storedDemo) : prev
+        );
+      }
     }
   }, [selected]);
 
@@ -100,9 +113,12 @@ export function Phase5Outreach({
 
     let firstMsg = res.data.first;
     let followUpMsg = res.data.followUp;
-    if (demoUrl.trim()) {
-      firstMsg = firstMsg.replace(/https:\/\/lead-launch\.demo\/[^\s]+|\[your-demo-link\]/g, demoUrl.trim());
-      followUpMsg = followUpMsg.replace(/https:\/\/lead-launch\.demo\/[^\s]+|\[your-demo-link\]/g, demoUrl.trim());
+    const activeDemo =
+      demoUrl.trim() || (selected?.id ? localStorage.getItem(`l2l_demo_url_${selected.id}`) || "" : "");
+
+    if (activeDemo) {
+      firstMsg = firstMsg.replace(/https:\/\/lead-launch\.demo\/[^\s]+|\[your-demo-link\]/g, activeDemo);
+      followUpMsg = followUpMsg.replace(/https:\/\/lead-launch\.demo\/[^\s]+|\[your-demo-link\]/g, activeDemo);
     }
 
     setMessage(firstMsg);
@@ -115,6 +131,13 @@ export function Phase5Outreach({
 
   function handleDemoUrlChange(url: string) {
     setDemoUrl(url);
+    if (selected?.id) {
+      if (url.trim()) {
+        localStorage.setItem(`l2l_demo_url_${selected.id}`, url.trim());
+      } else {
+        localStorage.removeItem(`l2l_demo_url_${selected.id}`);
+      }
+    }
     if (url.trim()) {
       setMessage((prev) => prev.replace(/https:\/\/lead-launch\.demo\/[^\s]+|\[your-demo-link\]/g, url.trim()));
       setFollowUp((prev) => prev.replace(/https:\/\/lead-launch\.demo\/[^\s]+|\[your-demo-link\]/g, url.trim()));

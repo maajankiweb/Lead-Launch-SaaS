@@ -149,7 +149,11 @@ export function generateBuildPromptFallback(lead: RankedLead, platform: string):
 9. FOOTER & LOCAL SEO JSON-LD:
    - Embedded LocalBusiness / MedicalClinic Schema.org JSON-LD markup with geolocation and phone.
 
-OUTPUT TARGET: ${platform.toUpperCase()}`;
+OUTPUT TARGET: ${
+  platform === "google-ai"
+    ? "GOOGLE AI STUDIO / GEMINI 1.5 & 2.0 (Output clean, production-grade standalone HTML with Tailwind CSS script tag, Lucide icons, responsive layout, dark luxe palette, and no markdown fences)"
+    : platform.toUpperCase()
+}`;
 
   const pitchPoints = [
     `Converts the clinic's stellar ${lead.rating}★ reputation (${lead.reviewsCount || 50}+ reviews) into direct patient appointments with 1-click WhatsApp booking.`,

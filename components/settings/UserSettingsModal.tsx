@@ -15,6 +15,8 @@ import {
   X,
   Sparkles,
   Lock,
+  ExternalLink,
+  Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,6 +34,8 @@ export function UserSettingsModal({ open, onOpenChange }: UserSettingsModalProps
   const [agencyName, setAgencyName] = useState("");
   const [apiKeyClaude, setApiKeyClaude] = useState("");
   const [apiKeyOpenAI, setApiKeyOpenAI] = useState("");
+  const [apiKeyGoogle, setApiKeyGoogle] = useState("");
+  const [vercelToken, setVercelToken] = useState("");
   const [plan, setPlan] = useState<string>("FREE");
 
   const currentPlanConfig = getPlanConfig(plan);
@@ -47,6 +51,8 @@ export function UserSettingsModal({ open, onOpenChange }: UserSettingsModalProps
             setAgencyName(d.user.agencyName || "");
             setApiKeyClaude(d.user.apiKeyClaude || "");
             setApiKeyOpenAI(d.user.apiKeyOpenAI || "");
+            setApiKeyGoogle(d.user.apiKeyGoogle || "");
+            setVercelToken(d.user.vercelToken || "");
             setPlan(d.user.plan || "FREE");
           }
         })
@@ -66,6 +72,8 @@ export function UserSettingsModal({ open, onOpenChange }: UserSettingsModalProps
           agencyName,
           apiKeyClaude,
           apiKeyOpenAI,
+          apiKeyGoogle,
+          vercelToken,
           plan,
         }),
       });
@@ -207,7 +215,7 @@ export function UserSettingsModal({ open, onOpenChange }: UserSettingsModalProps
             <div className="pt-2 border-t border-border/80">
               <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
-                  <Key className="h-3.5 w-3.5 text-primary" /> Custom AI Keys (Claude & OpenAI)
+                  <Key className="h-3.5 w-3.5 text-primary" /> AI Studio & Deployment Keys
                 </span>
                 {currentPlanConfig.features.customApiKeys ? (
                   <span className="text-[10px] text-emerald-500 font-bold flex items-center gap-1">
@@ -220,34 +228,90 @@ export function UserSettingsModal({ open, onOpenChange }: UserSettingsModalProps
                 )}
               </div>
 
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">
-                    Anthropic Claude API Key (Optional)
-                  </label>
+              <div className="space-y-4">
+                {/* Vercel Access Token */}
+                <div className="p-3 rounded-xl bg-muted/40 border border-border/70 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Rocket className="h-3.5 w-3.5 text-emerald-500" />
+                      Vercel Personal Access Token
+                    </label>
+                    <a
+                      href="https://vercel.com/account/tokens"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-primary hover:underline flex items-center gap-1"
+                    >
+                      Get Vercel Token <ExternalLink className="h-2.5 w-2.5" />
+                    </a>
+                  </div>
                   <input
                     type="password"
-                    value={apiKeyClaude}
-                    onChange={(e) => setApiKeyClaude(e.target.value)}
-                    placeholder="sk-ant-api03-..."
-                    className="w-full px-3.5 py-2 text-xs rounded-lg border border-border bg-background font-mono"
+                    value={vercelToken}
+                    onChange={(e) => setVercelToken(e.target.value)}
+                    placeholder="e.g. 7qK8bL9..."
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background font-mono"
                   />
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    Allows unlimited AI website redesign generation on cloud.
+                  <p className="text-[11px] text-muted-foreground">
+                    Powers 1-click automated deployment to Vercel and auto-attaches live demo link to cold outreach.
                   </p>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">
-                    OpenAI API Key (Optional)
-                  </label>
+                {/* Google AI Studio / Gemini API Key */}
+                <div className="p-3 rounded-xl bg-muted/40 border border-border/70 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                      Google AI Studio (Gemini) API Key
+                    </label>
+                    <a
+                      href="https://aistudio.google.com/app/apikey"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-primary hover:underline flex items-center gap-1"
+                    >
+                      Get Free Gemini Key <ExternalLink className="h-2.5 w-2.5" />
+                    </a>
+                  </div>
                   <input
                     type="password"
-                    value={apiKeyOpenAI}
-                    onChange={(e) => setApiKeyOpenAI(e.target.value)}
-                    placeholder="sk-proj-..."
-                    className="w-full px-3.5 py-2 text-xs rounded-lg border border-border bg-background font-mono"
+                    value={apiKeyGoogle}
+                    onChange={(e) => setApiKeyGoogle(e.target.value)}
+                    placeholder="AIzaSy..."
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background font-mono"
                   />
+                  <p className="text-[11px] text-muted-foreground">
+                    Synthesizes bespoke, modern demo websites with Gemini 1.5 & 2.0 Flash in Step 4 Demo Studio.
+                  </p>
+                </div>
+
+                {/* Claude & OpenAI */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">
+                      Anthropic Claude Key (Optional)
+                    </label>
+                    <input
+                      type="password"
+                      value={apiKeyClaude}
+                      onChange={(e) => setApiKeyClaude(e.target.value)}
+                      placeholder="sk-ant-api03-..."
+                      className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">
+                      OpenAI API Key (Optional)
+                    </label>
+                    <input
+                      type="password"
+                      value={apiKeyOpenAI}
+                      onChange={(e) => setApiKeyOpenAI(e.target.value)}
+                      placeholder="sk-proj-..."
+                      className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background font-mono"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

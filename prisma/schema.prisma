@@ -21,6 +21,7 @@ model User {
   apiKeyClaude  String?
   apiKeyOpenAI  String?
   apiKeyGoogle  String?
+  vercelToken   String?
   
   campaigns     Campaign[]
   deals         Deal[]

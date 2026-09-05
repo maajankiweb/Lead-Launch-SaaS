@@ -24,6 +24,7 @@ import {
   FileCode,
   CheckCircle2,
   Terminal,
+  Loader2,
 } from "lucide-react";
 
 function GithubIcon({ className = "h-4 w-4" }: { className?: string }) {
@@ -41,6 +42,7 @@ import type { RankedLead, BuildPromptResult } from "@/lib/types";
 import { callClaude } from "@/lib/claudeClient";
 import { generateDemoSiteHtml, type DemoSiteTheme } from "@/lib/demoSiteGenerator";
 import { toast } from "sonner";
+import { UserSettingsModal } from "@/components/settings/UserSettingsModal";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +52,7 @@ import {
 } from "@/components/ui/dialog";
 
 const PLATFORMS = [
+  { id: "google-ai", label: "Google AI Studio", url: "https://aistudio.google.com" },
   { id: "lovable", label: "Lovable", url: "https://lovable.dev" },
   { id: "claude-code", label: "Claude Code", url: "https://claude.com/claude-code" },
   { id: "bolt", label: "Bolt.new", url: "https://bolt.new" },
@@ -65,7 +68,7 @@ export function Phase4Build({
   onNext: () => void;
   onPrev: () => void;
 }) {
-  const [platform, setPlatform] = useState("lovable");
+  const [platform, setPlatform] = useState("google-ai");
   const [theme, setTheme] = useState<DemoSiteTheme>("modern");
   const [prompt, setPrompt] = useState("");
   const [pitchPoints, setPitchPoints] = useState<string[]>([]);
@@ -82,6 +85,13 @@ export function Phase4Build({
   const [deployModalOpen, setDeployModalOpen] = useState(false);
   const [githubModalOpen, setGithubModalOpen] = useState(false);
 
+  // Vercel 1-Click Automated Deployment States
+  const [deployingVercel, setDeployingVercel] = useState(false);
+  const [deployedUrl, setDeployedUrl] = useState<string>("");
+  const [deployedSuccessModal, setDeployedSuccessModal] = useState(false);
+  const [vercelMissingTokenModal, setVercelMissingTokenModal] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+
   const lastFor = useRef<string>("");
 
   // Initialize or re-generate demo site when selected lead changes
@@ -89,8 +99,12 @@ export function Phase4Build({
     if (selected) {
       const generated = generateDemoSiteHtml(selected, { theme });
       setSiteHtml(generated);
+      // Load any existing deployed Vercel URL
+      const savedUrl = localStorage.getItem(`l2l_demo_url_${selected.id}`) || "";
+      setDeployedUrl(savedUrl);
     } else {
       setSiteHtml("");
+      setDeployedUrl("");
     }
   }, [selected, theme]);
 
@@ -117,7 +131,7 @@ export function Phase4Build({
     return () => clearInterval(id);
   }, [prompt]);
 
-  // AI-powered demo site re-generation
+  // AI-powered demo site re-generation (Google AI Studio Gemini / Template engine)
   async function generateCustomDemoSite() {
     if (!selected) return;
     setGeneratingSite(true);
@@ -130,7 +144,11 @@ export function Phase4Build({
       const data = await res.json();
       if (data.html) {
         setSiteHtml(data.html);
-        toast.success("AI synthesized custom demo website!");
+        if (data.source === "gemini") {
+          toast.success("Google AI Studio (Gemini) synthesized modern demo website!");
+        } else {
+          toast.success("Tailored demo website generated!");
+        }
       } else {
         const fallback = generateDemoSiteHtml(selected, { theme });
         setSiteHtml(fallback);
@@ -142,6 +160,44 @@ export function Phase4Build({
       toast.success("Generated tailored demo website!");
     } finally {
       setGeneratingSite(false);
+    }
+  }
+
+  // 1-Click Automated Vercel Deployment
+  async function handleDeployToVercel() {
+    if (!selected || !siteHtml) {
+      toast.error("No website content to deploy.");
+      return;
+    }
+
+    setDeployingVercel(true);
+    try {
+      const res = await fetch("/api/deploy/vercel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          html: siteHtml,
+          leadName: selected.name,
+          leadId: selected.id,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.liveUrl) {
+        setDeployedUrl(data.liveUrl);
+        localStorage.setItem(`l2l_demo_url_${selected.id}`, data.liveUrl);
+        setDeployedSuccessModal(true);
+        toast.success("🚀 Demo website deployed to Vercel!");
+      } else if (data.error === "NO_TOKEN") {
+        setVercelMissingTokenModal(true);
+      } else {
+        toast.error(data.message || "Failed to deploy to Vercel.");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to deploy to Vercel.");
+    } finally {
+      setDeployingVercel(false);
     }
   }
 
@@ -278,11 +334,32 @@ export function Phase4Build({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setDeployModalOpen(true)}
-            className="h-9 text-xs gap-1.5 rounded-xl border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 font-bold"
+            disabled={deployingVercel}
+            onClick={handleDeployToVercel}
+            className="h-9 text-xs gap-1.5 rounded-xl border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 font-bold shadow-sm"
           >
-            <Rocket className="h-3.5 w-3.5" /> Deploy to Vercel
+            {deployingVercel ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Deploying to Vercel…
+              </>
+            ) : (
+              <>
+                <Rocket className="h-3.5 w-3.5" /> Deploy to Vercel
+              </>
+            )}
           </Button>
+
+          {deployedUrl && (
+            <a
+              href={deployedUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30 text-xs font-bold transition shadow-sm"
+              title="Open Live Deployed Vercel Website"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Live Demo ↗
+            </a>
+          )}
 
           <Button
             variant="outline"
@@ -531,6 +608,129 @@ export function Phase4Build({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Vercel Deployment Success Modal */}
+      <Dialog open={deployedSuccessModal} onOpenChange={setDeployedSuccessModal}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-500">
+              <Rocket className="h-5 w-5" />
+              <span>Demo Website Live on Vercel!</span>
+            </DialogTitle>
+            <DialogDescription>
+              Your demo website for <strong className="text-foreground">{selected?.name}</strong> has been deployed and is publicly accessible worldwide.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
+              <div className="text-xs text-muted-foreground font-medium">Public Live URL:</div>
+              <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-background border border-border">
+                <span className="font-mono text-xs text-primary truncate select-all">{deployedUrl}</span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 w-7 p-0 hover:bg-muted"
+                    onClick={() => {
+                      navigator.clipboard.writeText(deployedUrl);
+                      toast.success("Live URL copied!");
+                    }}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 w-7 p-0 text-primary hover:bg-muted"
+                    onClick={() => window.open(deployedUrl, "_blank")}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                <span>Auto-attached to Phase 5 Outreach! It will be included in all WhatsApp, Email, & Instagram messages.</span>
+              </p>
+            </div>
+
+            <div className="flex gap-2.5">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 text-xs h-9"
+                onClick={() => setDeployedSuccessModal(false)}
+              >
+                Keep Editing
+              </Button>
+              <Button
+                size="sm"
+                className="flex-1 text-xs h-9 font-bold bg-primary text-primary-foreground gap-1.5"
+                onClick={() => {
+                  setDeployedSuccessModal(false);
+                  onNext();
+                }}
+              >
+                Proceed to Outreach (Step 5) →
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Missing Vercel Token Modal */}
+      <Dialog open={vercelMissingTokenModal} onOpenChange={setVercelMissingTokenModal}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-500">
+              <Rocket className="h-5 w-5" />
+              <span>Vercel Token Required</span>
+            </DialogTitle>
+            <DialogDescription>
+              To enable 1-click automated deployment to Vercel, enter your Vercel Personal Access Token in your Workspace Settings.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2 text-xs">
+            <div className="p-3.5 rounded-xl bg-muted/50 border border-border space-y-2">
+              <div className="font-bold text-foreground">How to get your free token in 30 seconds:</div>
+              <ol className="list-decimal pl-4 space-y-1 text-muted-foreground">
+                <li>Go to your Vercel Account Settings → Tokens.</li>
+                <li>Click &quot;Create Token&quot; and copy the generated token.</li>
+                <li>Paste it into your Workspace Settings in Lead → Launch.</li>
+              </ol>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  setVercelMissingTokenModal(false);
+                  setSettingsModalOpen(true);
+                }}
+                className="w-full text-xs font-bold h-9 bg-primary text-primary-foreground"
+              >
+                Open Settings to Add Token
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open("https://vercel.com/account/tokens", "_blank")}
+                className="w-full text-xs h-9"
+              >
+                Create Vercel Token ↗
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Workspace Settings Modal */}
+      <UserSettingsModal
+        open={settingsModalOpen}
+        onOpenChange={setSettingsModalOpen}
+      />
 
       {/* Export to GitHub Modal */}
       <Dialog open={githubModalOpen} onOpenChange={setGithubModalOpen}>
