@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getPlanConfig } from "@/lib/plans";
+import { getPlanConfig, getPlanLimits } from "@/lib/plans";
 
 export async function GET(req: NextRequest) {
   try {
@@ -19,10 +19,12 @@ export async function GET(req: NextRequest) {
     });
 
     const planConfig = getPlanConfig(user.plan);
+    const planLimits = getPlanLimits(user.plan);
 
     return NextResponse.json({
       campaigns,
       plan: planConfig.id,
+      planLimits,
       canExportCsv: planConfig.features.csvExport,
       canMultiCampaign: planConfig.features.multiCampaignSwitcher,
       maxCampaigns: planConfig.limits.maxCampaigns,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getPlanLimits } from "@/lib/plans";
 
 export async function GET(req: NextRequest) {
   try {
@@ -25,6 +26,20 @@ export async function POST(req: NextRequest) {
     const user = await getCurrentUser(req);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const planLimits = getPlanLimits(user.plan);
+    const existingDeals = await db.deal.findMany({ where: { userId: user.id } });
+    if (existingDeals.length >= planLimits.crmDeals) {
+      return NextResponse.json(
+        {
+          error: `${planLimits.name} is limited to ${planLimits.crmDeals} CRM deals. Upgrade your plan to manage more deals.`,
+          requiresUpgrade: true,
+          limit: planLimits.crmDeals,
+          current: existingDeals.length,
+        },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();

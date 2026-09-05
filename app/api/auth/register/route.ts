@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { hashPassword, signJWT, AUTH_COOKIE_NAME } from "@/lib/auth";
+import { hashPassword, attachAuthCookie } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
     }
 
     const passwordHash = await hashPassword(password);
-    const plan = role === "AGENCY" ? "AGENCY_SCALE" : "PRO";
+    // Fresh signups start on Starter Free tier
+    const plan = "FREE";
 
     const user = await db.user.create({
       data: {
@@ -45,19 +46,10 @@ export async function POST(req: NextRequest) {
     await db.campaign.create({
       data: {
         userId: user.id,
-        title: "Sample Local SEO & Web Redesign Campaign",
+        title: "Default Lead Pipeline",
         niche: "Dentists & Medical Clinics",
-        location: "Austin, TX",
+        location: "Mumbai",
       },
-    });
-
-    // Generate JWT token
-    const token = await signJWT({
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      plan: user.plan,
     });
 
     const response = NextResponse.json({
@@ -73,12 +65,12 @@ export async function POST(req: NextRequest) {
     });
 
     // Set HTTP-only secure cookie
-    response.cookies.set(AUTH_COOKIE_NAME, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-      path: "/",
+    await attachAuthCookie(response, {
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      plan: user.plan,
     });
 
     return response;

@@ -14,6 +14,8 @@ import type { Lead, AuditResult, RankedLead } from "@/lib/types";
 import { callClaude } from "@/lib/claudeClient";
 import { toast } from "sonner";
 import { AuditReportModal } from "./AuditReportModal";
+import { useAuth } from "@/components/auth/AuthContext";
+import { getPlanConfig } from "@/lib/plans";
 
 export function Phase3Rank({
   leads,
@@ -39,6 +41,9 @@ export function Phase3Rank({
   const [claudeError, setClaudeError] = useState<string | null>(null);
   const [reportLead, setReportLead] = useState<RankedLead | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
+
+  const { user } = useAuth();
+  const planConfig = getPlanConfig(user?.plan);
 
   const auditedCount = leads.filter((l) => audits[l.id]).length;
 
@@ -84,6 +89,10 @@ export function Phase3Rank({
   }
 
   function exportRankedToCsv() {
+    if (!planConfig.features.csvExport) {
+      toast.error("CSV Export is available on Freelancer Pro and Agency Scale plans. Please upgrade to unlock.");
+      return;
+    }
     if (ranked.length === 0) {
       toast.info("No ranked leads to export.");
       return;

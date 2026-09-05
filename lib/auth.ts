@@ -1,8 +1,10 @@
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "./db";
+import { logger } from "./logger";
+import { normalizePlanKey, normalizePlanType } from "./plans";
 
 const JWT_SECRET_STRING = process.env.JWT_SECRET || "lead-to-launch-jwt-secret-secure-key-2026";
 const SECRET_KEY = new TextEncoder().encode(JWT_SECRET_STRING);
@@ -45,6 +47,24 @@ export async function verifyJWT(token: string): Promise<UserSessionPayload | nul
   } catch {
     return null;
   }
+}
+
+/**
+ * Sets the signed JWT session cookie onto a NextResponse.
+ */
+export async function attachAuthCookie(
+  response: NextResponse,
+  payload: UserSessionPayload
+): Promise<string> {
+  const token = await signJWT(payload);
+  response.cookies.set(AUTH_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 30, // 30 days
+    path: "/",
+  });
+  return token;
 }
 
 export async function getCurrentUser(request?: NextRequest) {
@@ -104,6 +124,7 @@ export async function getCurrentUser(request?: NextRequest) {
       };
     }
 
+    // Always fetch fresh live record from MongoDB Atlas to prevent stale JWT session claims
     const user = await db.user.findUnique({
       where: { id: payload.userId },
       select: {
@@ -112,6 +133,7 @@ export async function getCurrentUser(request?: NextRequest) {
         name: true,
         role: true,
         plan: true,
+        planUpdatedAt: true,
         agencyName: true,
         agencyLogo: true,
         createdAt: true,
@@ -124,8 +146,20 @@ export async function getCurrentUser(request?: NextRequest) {
       },
     });
 
+    if (!user) return null;
+
+    // Detect and log session vs live DB tier mismatch
+    if (payload.plan && user.plan !== payload.plan) {
+      logger.tierMismatch({
+        userId: user.id,
+        planReadFromDB: user.plan,
+        planReadFromSession: payload.plan,
+      });
+    }
+
     return user;
-  } catch {
+  } catch (error) {
+    console.error("getCurrentUser error:", error);
     return null;
   }
 }

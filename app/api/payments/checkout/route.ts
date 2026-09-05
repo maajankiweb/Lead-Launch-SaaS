@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, attachAuthCookie } from "@/lib/auth";
 import { processPlanUpgrade, createRazorpayOrder, createStripeSession } from "@/lib/payments";
-import { PLANS, PlanType } from "@/lib/plans";
+import { normalizePlanType, getPlanConfig, getPlanLimits, PLANS, PlanType } from "@/lib/plans";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,11 +12,12 @@ export async function POST(req: NextRequest) {
 
     const { planId, billingCycle = "monthly", currency = "USD", provider = "instant" } = await req.json();
 
-    if (planId !== "PRO" && planId !== "AGENCY_SCALE" && planId !== "ENTERPRISE") {
-      return NextResponse.json({ error: "Invalid plan selected" }, { status: 400 });
+    const canonicalPlanType = normalizePlanType(planId);
+    if (canonicalPlanType === "FREE") {
+      return NextResponse.json({ error: "Invalid paid plan selected" }, { status: 400 });
     }
 
-    const plan = PLANS[planId as PlanType];
+    const plan = PLANS[canonicalPlanType];
     const isINR = currency === "INR" || provider === "razorpay";
     const amount = isINR
       ? (billingCycle === "annual" ? plan.priceAnnualMonthlyINR * 12 : plan.priceMonthlyINR)
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
         keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID,
         amount: order.amount,
         currency: order.currency,
-        planId,
+        planId: canonicalPlanType,
         billingCycle,
       });
     }
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
         currency: "usd",
         customerEmail: user.email,
         planName: plan.name,
-        successUrl: `${origin}/dashboard?payment=success&plan=${planId}`,
+        successUrl: `${origin}/dashboard?payment=success&plan=${canonicalPlanType}`,
         cancelUrl: `${origin}/dashboard?payment=cancelled`,
       });
 
@@ -67,18 +68,37 @@ export async function POST(req: NextRequest) {
       userId: user.id,
       userEmail: user.email,
       userName: user.name,
-      planId,
+      planId: canonicalPlanType,
       billingCycle,
       currency: isINR ? "INR" : "USD",
       provider: provider || "instant",
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       message: `Successfully upgraded to ${plan.name}!`,
       plan: result.plan,
+      planLimits: getPlanLimits(canonicalPlanType),
       payment: result.payment,
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+        name: result.user.name,
+        role: result.user.role,
+        plan: result.user.plan,
+      },
     });
+
+    // Re-issue updated session cookie immediately
+    await attachAuthCookie(response, {
+      userId: result.user.id,
+      email: result.user.email,
+      name: result.user.name,
+      role: result.user.role,
+      plan: result.user.plan,
+    });
+
+    return response;
   } catch (error: any) {
     console.error("Payment error:", error);
     return NextResponse.json({ error: error.message || "Payment checkout failed" }, { status: 500 });

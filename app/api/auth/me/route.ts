@@ -8,10 +8,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ authenticated: false, user: null }, { status: 200 });
     }
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       authenticated: true,
       user,
     });
+    res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+    return res;
   } catch (error: any) {
     return NextResponse.json(
       { authenticated: false, error: error?.message || "Failed to fetch session" },

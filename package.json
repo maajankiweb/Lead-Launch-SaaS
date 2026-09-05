@@ -6,6 +6,7 @@
     "dev": "next dev",
     "dev:webpack": "next dev --webpack",
     "build": "next build",
+    "vercel-build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "db:clean": "node scripts/clean-dummy-db.js"

@@ -44,7 +44,7 @@ export function Phase1Scrape({
       toast.error("Please enter a Niche and Location.");
       return;
     }
-    let targetCount = Number(input.count) > 0 ? Number(input.count) : (planConfig.id === "FREE" ? 12 : 25);
+    let targetCount = Number(input.count) > 0 ? Number(input.count) : planConfig.limits.maxLeadsPerScrape;
     if (targetCount > planConfig.limits.maxLeadsPerScrape) {
       targetCount = planConfig.limits.maxLeadsPerScrape;
       toast.info(`${planConfig.name} limit applied: Scraping maximum ${planConfig.limits.maxLeadsPerScrape} leads.`);
@@ -64,10 +64,20 @@ export function Phase1Scrape({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Scrape failed");
-      // Stagger in for visual drama
-      for (let i = 0; i < data.leads.length; i++) {
-        await new Promise((r) => setTimeout(r, 60));
-        setLeads(data.leads.slice(0, i + 1));
+
+      // Smooth fast stagger for visual experience without freezing high-count runs
+      if (data.leads.length <= 25) {
+        for (let i = 0; i < data.leads.length; i++) {
+          await new Promise((r) => setTimeout(r, 35));
+          setLeads(data.leads.slice(0, i + 1));
+        }
+      } else {
+        const batchSize = Math.max(10, Math.ceil(data.leads.length / 12));
+        for (let i = batchSize; i < data.leads.length; i += batchSize) {
+          await new Promise((r) => setTimeout(r, 45));
+          setLeads(data.leads.slice(0, i));
+        }
+        setLeads(data.leads);
       }
       toast.success(`${data.leads.length} leads scraped from ${input.city}`);
     } catch (e) {
@@ -123,7 +133,7 @@ export function Phase1Scrape({
               <div className="flex justify-between items-center">
                 <Label htmlFor="count" className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Count</Label>
                 <span className="text-[11px] text-muted-foreground">
-                  {planConfig.id === "FREE" ? "Free tier max: 15" : "Pro/Agency tier"}
+                  {planConfig.id === "FREE" ? "Free tier: 15 max" : `${planConfig.name}: ${planConfig.limits.maxLeadsPerScrape} max`}
                 </span>
               </div>
               <Input
@@ -134,7 +144,7 @@ export function Phase1Scrape({
                 max={planConfig.limits.maxLeadsPerScrape}
                 value={input.count}
                 onChange={(e) => setInput({ ...input, count: e.target.value })}
-                placeholder={planConfig.id === "FREE" ? "12 (max 15)" : "25"}
+                placeholder={`${planConfig.limits.maxLeadsPerScrape} (max)`}
                 className="h-10 text-base font-mono tabular-nums"
               />
             </div>
@@ -171,6 +181,10 @@ export function Phase1Scrape({
               size="sm"
               variant="outline"
               onClick={() => {
+                if (!planConfig.features.csvExport) {
+                  toast.error("CSV Lead Export is available on Freelancer Pro and Agency Scale plans. Please upgrade to unlock.");
+                  return;
+                }
                 const headers = ["Name", "Category", "Address", "City", "Phone", "WhatsApp", "Email", "Website", "Rating", "ReviewsCount"];
                 const rows = leads.map((l) => [
                   `"${(l.name || "").replace(/"/g, '""')}"`,

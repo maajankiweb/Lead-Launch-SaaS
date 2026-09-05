@@ -57,6 +57,7 @@ const UserSchema = new Schema(
     passwordHash: { type: String, required: true },
     role: { type: String, default: "FREELANCER" },
     plan: { type: String, default: "FREE" },
+    planUpdatedAt: { type: Date, default: null },
     agencyName: { type: String, default: null },
     agencyLogo: { type: String, default: null },
     apiKeyClaude: { type: String, default: null },
