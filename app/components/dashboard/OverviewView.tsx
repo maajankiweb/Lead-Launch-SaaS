@@ -39,7 +39,6 @@ interface OverviewViewProps {
   onOpenCrm: () => void;
   onOpenCalculator: () => void;
   onOpenCampaigns: () => void;
-  onLoadSampleData: () => void;
 }
 
 export function OverviewView({
@@ -53,7 +52,6 @@ export function OverviewView({
   onOpenCrm,
   onOpenCalculator,
   onOpenCampaigns,
-  onLoadSampleData,
 }: OverviewViewProps) {
   // Metrics
   const metrics = useMemo(() => {
@@ -128,15 +126,6 @@ export function OverviewView({
             >
               <Briefcase className="h-4 w-4 text-primary" /> Deals CRM
             </Button>
-            {leads.length === 0 && (
-              <Button
-                variant="outline"
-                onClick={onLoadSampleData}
-                className="h-10 text-xs font-bold gap-1.5 border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
-              >
-                <Sparkles className="h-4 w-4" /> Load Sample High-Ticket Pipeline
-              </Button>
-            )}
           </div>
         </div>
       </div>
@@ -369,14 +358,14 @@ export function OverviewView({
         {metrics.highPayableList.length === 0 ? (
           <div className="p-8 text-center border border-dashed border-border/80 rounded-2xl">
             <p className="text-xs text-muted-foreground">
-              No high-payable leads filtered yet. Run a scrape in Phase 1 or load our sample agency pipeline.
+              No high-payable leads filtered yet. Run a live scrape in Phase 1 to detect high-value businesses losing revenue.
             </p>
             <Button
-              onClick={onLoadSampleData}
+              onClick={() => onNavigateTab("phase1")}
               size="sm"
-              className="mt-3 gap-1.5 text-xs font-bold"
+              className="mt-3 gap-1.5 text-xs font-bold shadow-md bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-600/90"
             >
-              <Sparkles className="h-3.5 w-3.5" /> Load Sample High-Ticket Leads
+              <Search className="h-3.5 w-3.5" /> Scrape High-Ticket Leads
             </Button>
           </div>
         ) : (
