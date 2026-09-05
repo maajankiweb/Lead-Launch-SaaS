@@ -17,7 +17,7 @@ fail() {
   exit 1
 }
 
-cd "$(dirname "$0")/app" || fail "Could not find the 'app' folder next to this file."
+cd "$(dirname "$0")" || fail "Could not find current folder."
 
 echo ""
 echo "════════════════════════════════════════"

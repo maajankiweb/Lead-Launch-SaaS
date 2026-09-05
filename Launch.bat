@@ -3,7 +3,7 @@ REM Lead & Launch SaaS Dashboard Runner (Windows)
 REM Powered by MaaJanki Web Tech
 REM Double-click this file to start the SaaS dashboard.
 
-cd /d "%~dp0app"
+cd /d "%~dp0"
 
 echo.
 echo ===================================================
