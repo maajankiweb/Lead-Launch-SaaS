@@ -31,29 +31,29 @@ export function PhaseShell({
       transition={{ duration: 0.35, ease: "easeOut" }}
       className="max-w-7xl mx-auto px-4 sm:px-6 pb-32"
     >
-      <header className="mb-10">
-        <h1 className="font-display text-4xl sm:text-5xl text-foreground leading-[1.05]">{title}</h1>
-        <p className="text-muted-foreground mt-4 text-base max-w-2xl leading-relaxed">{subtitle}</p>
+      <header className="mb-6 sm:mb-10">
+        <h1 className="font-display text-2xl sm:text-4xl lg:text-5xl text-foreground leading-[1.1] tracking-tight">{title}</h1>
+        <p className="text-muted-foreground mt-2 sm:mt-4 text-xs sm:text-base max-w-2xl leading-relaxed">{subtitle}</p>
       </header>
       <div>{children}</div>
-      <div className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/65">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+      <div className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/90 backdrop-blur-lg pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-3">
           <Button
             variant="outline"
             onClick={onPrev}
             disabled={prevDisabled || !onPrev}
             aria-label="Go to previous phase"
-            className="h-10 px-4"
+            className="h-9 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm"
           >
-            <ChevronLeft className="h-4 w-4 mr-1.5" strokeWidth={1.75} /> Back
+            <ChevronLeft className="h-4 w-4 mr-1 sm:mr-1.5" strokeWidth={1.75} /> Back
           </Button>
           <Button
             onClick={onNext}
             disabled={nextDisabled || !onNext}
             aria-label={nextLabel}
-            className="h-10 px-5 transition-transform duration-150 active:scale-[0.98]"
+            className="h-9 sm:h-10 px-4 sm:px-5 text-xs sm:text-sm transition-transform duration-150 active:scale-[0.98]"
           >
-            {nextLabel} <ChevronRight className="h-4 w-4 ml-1.5" strokeWidth={1.75} />
+            {nextLabel} <ChevronRight className="h-4 w-4 ml-1 sm:ml-1.5" strokeWidth={1.75} />
           </Button>
         </div>
       </div>

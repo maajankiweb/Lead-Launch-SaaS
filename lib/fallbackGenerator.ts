@@ -170,11 +170,70 @@ export function generateOutreachFallback(
   const demoUrl = `https://lead-launch.demo/${lead.id}`;
   const revs = lead.reviewsCount || 50;
 
+  if (channel === "call") {
+    const isHinglish = language === "hinglish";
+    const hook = isHinglish
+      ? `Namaste ${greeting}! Kya main ${lead.name} ke owner/decision-maker se baat kar raha hoon? Sir, main local businesses ko online patient/client conversions boost karne me help karta hoon. Sirf 45 seconds lagenge aapka time.`
+      : `Hello ${greeting}! Am I speaking with the business owner or clinic manager at ${lead.name}? I help local businesses in ${lead.city} turn Google searches into booked appointments. Do you have 45 seconds?`;
+
+    const observation = isHinglish
+      ? `Maine Google pe dekha ki aapka ${lead.rating || "4.8"}★ rating aur ${revs}+ reviews bohot strong hain! Lekin jab log ${lead.city} me search karte hain, toh aapki koi modern mobile-friendly website nahi milti ya direct WhatsApp booking button nahi hai, jiski wajah se estimated ₹${(lead.audit.estLostRevenuePerMonth || 45000).toLocaleString("en-IN")}/mahina ka business competitors ke paas chala jaata hai.`
+      : `I noticed your ${lead.rating || "4.8"}★ Google profile with ${revs}+ reviews is stellar. However, prospective clients searching in ${lead.city} either encounter no website or a slow mobile experience with no instant WhatsApp booking, leaking an estimated ₹${(lead.audit.estLostRevenuePerMonth || 45000).toLocaleString("en-IN")}/month.`;
+
+    const offer = isHinglish
+      ? `Maine specially aapke liye ek live redesigned demo website banayi hai, jisme click-to-WhatsApp booking aur verified reviews ready hain. Main chahta hoon ki main aapko WhatsApp pe link share karun — dekhne me sirf 1 minute lagega. Kya main aapke is number pe WhatsApp bhej doon?`
+      : `To demonstrate what's possible, I've already prepared a free, personalized demo website for ${lead.name} with instant booking and mobile optimization. May I send you the direct link on WhatsApp right now to review?`;
+
+    const objectionHandling = [
+      {
+        objection: isHinglish ? "Humare paas pehle se website / agency hai" : "We already have a website / agency",
+        response: isHinglish
+          ? "Bilkul samajhta hoon sir! Par agar aap 1 minute nikaal ke hamari live demo dekhein, toh aapko pata chalega ki kaise WhatsApp booking se conversions 3x badh jaate hain. Koi charges nahi hain dekhne ke."
+          : "Understood! Many owners tell us that, but after seeing how our instant WhatsApp conversion funnel works, they realize they're capturing 3x more bookings without spending more on ads.",
+      },
+      {
+        objection: isHinglish ? "Abhi time nahi hai / Baad me baat karo" : "I'm busy / Not interested right now",
+        response: isHinglish
+          ? "No problem at all sir! Main sirf link WhatsApp kar deta hoon. Jab bhi free time mile aap check kar lijiyega."
+          : "Completely understand, I know you're busy with clients. Let me just text you the demo link on WhatsApp so you can review at your convenience.",
+      },
+      {
+        objection: isHinglish ? "Cost kitna lagega?" : "How much does this cost?",
+        response: isHinglish
+          ? "Sir demo dekhna 100% free hai. Agar aapko pasand aaye aur aap live launch karna chahein, toh standard setup ₹15,000 se start hota hai with full support. Pehle aap demo dekh lijiye!"
+          : "The demo preview is 100% free with zero obligation. If you love it and want to launch it live, our packages start at just ₹15,000. Let me send you the preview first!",
+      },
+    ];
+
+    const first = `[COLD CALL SCRIPT FOR ${lead.name.toUpperCase()}]
+1. OPENER (10 Sec):
+"${hook}"
+
+2. OBSERVATION & PAIN (20 Sec):
+"${observation}"
+
+3. THE VALUE OFFER (15 Sec):
+"${offer}"`;
+
+    const followUp = `[DAY-3 FOLLOW-UP CALL SCRIPT]
+"Namaste ${greeting}, maine 2 din pehle aapko ${lead.name} ke live demo ka WhatsApp link share kiya tha. Kya aapko 2 minute mila use dekhne ka? Agar pasand aaya toh hum is weekend tak live launch kar sakte hain."`;
+
+    return {
+      first,
+      followUp,
+      bestSendTime: "Mon–Fri, 11:30 AM – 1:00 PM or 4:00 PM – 6:00 PM IST",
+      callScript: {
+        hook,
+        observation,
+        offer,
+        objectionHandling,
+      },
+    };
+  }
+
   if (channel === "email") {
     const subject = `Quick question regarding ${lead.name}'s website inquiries`;
-    const first = `Subject: ${subject}
-
-Dear ${lead.name.split(",")[0]},
+    const first = `Dear ${lead.name.split(",")[0]},
 
 I was researching top ${lead.category} practices in ${lead.city} and was really impressed by your ${lead.rating}★ rating from over ${revs} patient reviews.
 
@@ -189,9 +248,7 @@ Best regards,
 [Your Name]
 [Your Contact Number]`;
 
-    const followUp = `Subject: Re: Quick question regarding ${lead.name}'s website inquiries
-
-Dear ${lead.name.split(",")[0]},
+    const followUp = `Dear ${lead.name.split(",")[0]},
 
 Following up on my note from earlier this week. Local practices in ${lead.city} typically miss out on ₹${(lead.audit.estLostRevenuePerMonth || 50000).toLocaleString("en-IN")}/month in new patient appointments simply due to missing online booking.
 
@@ -202,7 +259,12 @@ Would you have 5 minutes for a brief call this Thursday or Friday?
 Best regards,
 [Your Name]`;
 
-    return { first, followUp, bestSendTime: "Tue–Thu, 10:30 AM – 1:00 PM IST" };
+    return {
+      first,
+      followUp,
+      emailSubject: subject,
+      bestSendTime: "Tue–Thu, 10:30 AM – 1:00 PM IST",
+    };
   }
 
   if (language === "hinglish") {

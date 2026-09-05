@@ -504,10 +504,10 @@ export default function DashboardPage() {
               variant="outline"
               size="sm"
               onClick={() => setCrmOpen(true)}
-              className="h-9 text-xs gap-1.5 border-border/80 bg-card/70 hover:bg-muted font-semibold rounded-xl"
+              className="hidden sm:inline-flex h-9 text-xs gap-1.5 border-border/80 bg-card/70 hover:bg-muted font-semibold rounded-xl"
             >
               <Briefcase className="h-3.5 w-3.5 text-primary" />
-              <span className="hidden sm:inline">Deals CRM</span>
+              <span>Deals CRM</span>
             </Button>
 
             {/* Revenue Calculator */}
@@ -515,10 +515,10 @@ export default function DashboardPage() {
               variant="outline"
               size="sm"
               onClick={() => setCalculatorOpen(true)}
-              className="h-9 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10 font-semibold rounded-xl"
+              className="hidden md:inline-flex h-9 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10 font-semibold rounded-xl"
             >
               <Calculator className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Calculator</span>
+              <span>Calculator</span>
             </Button>
 
             {/* Workspace Settings */}

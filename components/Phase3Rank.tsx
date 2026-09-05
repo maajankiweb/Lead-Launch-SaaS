@@ -14,6 +14,7 @@ import type { Lead, AuditResult, RankedLead } from "@/lib/types";
 import { callClaude } from "@/lib/claudeClient";
 import { toast } from "sonner";
 import { AuditReportModal } from "./AuditReportModal";
+import { QuickCallModal } from "@/components/crm/QuickCallModal";
 import { useAuth } from "@/components/auth/AuthContext";
 import { getPlanConfig } from "@/lib/plans";
 
@@ -41,6 +42,8 @@ export function Phase3Rank({
   const [claudeError, setClaudeError] = useState<string | null>(null);
   const [reportLead, setReportLead] = useState<RankedLead | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
+  const [callLead, setCallLead] = useState<RankedLead | null>(null);
+  const [callOpen, setCallOpen] = useState(false);
 
   const { user } = useAuth();
   const planConfig = getPlanConfig(user?.plan);
@@ -231,11 +234,55 @@ export function Phase3Rank({
                       <span className="text-border">·</span>
                       <span className="text-muted-foreground">{lead.reviewsCount} reviews</span>
                     </div>
-                    <div className="mt-3 flex items-center justify-between pt-2 border-t border-border/60">
-                      <div className="flex gap-1.5">
-                        {lead.phone && <Phone className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />}
-                        {lead.whatsapp && <MessageCircle className="h-3.5 w-3.5 text-[color:var(--accent-foreground)]" strokeWidth={1.5} />}
-                        {lead.email && <Mail className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />}
+                    <div className="mt-3 flex items-center justify-between pt-2 border-t border-border/60 gap-2">
+                      <div className="flex items-center gap-1.5">
+                        {lead.phone && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCallLead(lead);
+                              setCallOpen(true);
+                            }}
+                            className="h-7 px-2 text-[11px] gap-1 rounded-lg border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 font-bold"
+                            title={`Call ${lead.name} (${lead.phone})`}
+                          >
+                            <Phone className="h-3 w-3" /> Call
+                          </Button>
+                        )}
+                        {lead.whatsapp && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const wa = lead.whatsapp || "";
+                              const raw = wa.replace(/\D/g, "");
+                              const num = raw.length === 10 ? `91${raw}` : raw;
+                              window.open(`https://wa.me/${num}`, "_blank");
+                            }}
+                            className="h-7 w-7 rounded-lg text-emerald-600 hover:bg-emerald-500/10"
+                            title="Chat on WhatsApp"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {lead.email && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const em = lead.email || "";
+                              window.open(`mailto:${em}?subject=${encodeURIComponent(`Website performance audit for ${lead.name}`)}`);
+                            }}
+                            className="h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted"
+                            title={`Email ${lead.email}`}
+                          >
+                            <Mail className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
                       <Button
                         size="sm"
@@ -245,9 +292,9 @@ export function Phase3Rank({
                           setReportLead(lead);
                           setReportOpen(true);
                         }}
-                        className="text-xs h-7 px-2 text-primary hover:bg-primary/10"
+                        className="text-xs h-7 px-2 text-primary hover:bg-primary/10 shrink-0"
                       >
-                        <FileText className="h-3.5 w-3.5 mr-1" /> View PDF Report
+                        <FileText className="h-3.5 w-3.5 mr-1" /> View PDF
                       </Button>
                     </div>
                   </CardContent>
@@ -293,15 +340,115 @@ export function Phase3Rank({
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
+              {/* Mobile View (< md) */}
+              <div className="md:hidden space-y-3">
+                {ranked.map((lead, i) => (
+                  <div
+                    key={lead.id}
+                    onClick={() => setSelectedId(lead.id)}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer space-y-3 ${
+                      selectedId === lead.id
+                        ? "bg-primary/5 border-primary shadow-sm"
+                        : "bg-card border-border hover:border-primary/30"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0">
+                            #{i + 1}
+                          </Badge>
+                          <span className="font-bold text-sm text-foreground truncate">{lead.name}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {lead.reviewsCount} reviews · {lead.rating}★ · {lead.category}
+                        </div>
+                      </div>
+                      <div className="font-display text-xl font-bold tabular-nums text-primary shrink-0">
+                        {lead.score}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/60">
+                      <div className="font-mono text-emerald-500 font-semibold">
+                        ₹{lead.audit.estLostRevenuePerMonth.toLocaleString("en-IN")}/mo lost
+                      </div>
+                      {lead.audit.hasWebsite ? (
+                        <Badge variant="secondary" className="text-[10px] h-5">
+                          {lead.audit.pageSpeedScore} Speed
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] h-5 text-destructive border-destructive/30">
+                          No site
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      {lead.phone ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCallLead(lead);
+                            setCallOpen(true);
+                          }}
+                          className="flex-1 h-8 text-xs font-bold gap-1 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+                        >
+                          <Phone className="h-3.5 w-3.5" /> Call
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled
+                          className="flex-1 h-8 text-xs text-muted-foreground"
+                        >
+                          No Phone
+                        </Button>
+                      )}
+
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReportLead(lead);
+                          setReportOpen(true);
+                        }}
+                        className="h-8 px-2 text-xs text-primary"
+                      >
+                        <FileText className="h-3.5 w-3.5 mr-1" /> PDF
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant={selectedId === lead.id ? "default" : "outline"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedId(lead.id);
+                        }}
+                        className="flex-1 h-8 text-xs font-semibold"
+                      >
+                        {selectedId === lead.id ? "Selected ✓" : "Select"}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table (>= md) */}
+              <div className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-10">#</TableHead>
                       <TableHead>Business</TableHead>
-                      <TableHead className="w-[200px]">Score</TableHead>
+                      <TableHead className="w-[180px]">Score</TableHead>
                       <TableHead>₹ Lost / mo</TableHead>
                       <TableHead>Site</TableHead>
+                      <TableHead className="text-center">Call / Contact</TableHead>
                       <TableHead>Report</TableHead>
                       <TableHead className="text-right">Select</TableHead>
                     </TableRow>
@@ -346,6 +493,25 @@ export function Phase3Rank({
                             <Badge variant="outline" className="text-xs font-normal text-[color:var(--destructive)] border-[color:var(--destructive)]/40 bg-[color:var(--destructive)]/5">None</Badge>
                           )}
                         </TableCell>
+                        <TableCell className="align-top pt-2.5 text-center">
+                          {lead.phone ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCallLead(lead);
+                                setCallOpen(true);
+                              }}
+                              className="h-8 px-2.5 text-xs gap-1 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 font-bold rounded-lg"
+                              title={`Call ${lead.name} (${lead.phone})`}
+                            >
+                              <Phone className="h-3 w-3" /> Call
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
                         <TableCell className="align-top pt-2.5">
                           <Button
                             size="sm"
@@ -384,6 +550,9 @@ export function Phase3Rank({
 
       {/* Client Audit Report Modal */}
       <AuditReportModal lead={reportLead} open={reportOpen} onOpenChange={setReportOpen} />
+
+      {/* Quick Call Assistant & Dialer Modal */}
+      <QuickCallModal lead={callLead} open={callOpen} onOpenChange={setCallOpen} />
     </PhaseShell>
   );
 }

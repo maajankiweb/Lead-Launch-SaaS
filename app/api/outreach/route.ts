@@ -6,7 +6,8 @@ export const maxDuration = 300;
 
 const CHANNEL_RULES: Record<OutreachChannel, string> = {
   whatsapp: "WhatsApp DM. Max ~110 words. Warm, human. Emojis OK (👋 🔥 ✓). Short 2-4 line paragraphs. End with a low-friction yes/no ask.",
-  email: "Email. Include a Subject line. Max ~150 words. No emoji in subject. Clear CTA.",
+  email: "Email. Include a clear, curiosity-inducing Subject line and structured body. Max ~150 words. Professional CTA.",
+  call: "Cold-calling phone script. Max 60 seconds spoken. Warm, conversational. 10s Hook + pain point from Google listing/audit + offer to send live redesigned demo website via WhatsApp. Include objection handling.",
   instagram: "Instagram DM. Max ~45 words. Casual, one hook + demo link + soft ask.",
   linkedin: "LinkedIn InMail/DM. Max ~90 words. Professional, executive tone. Focus on business ROI and patient acquisition.",
   sms: "SMS Text. Max 160 characters. Concise, includes demo link and 1-tap call-to-action.",
@@ -33,9 +34,10 @@ Language: ${langRule}
 
 Return ONLY this JSON (no markdown fences):
 {
-  "first": "the first-touch message",
-  "followUp": "the day-3 follow-up message",
-  "bestSendTime": "one short line on the best day/time to send in IST"
+  "first": "the first-touch message or cold call script",
+  "followUp": "the day-3 follow-up message or follow-up call script",
+  "emailSubject": "if email, the email subject line",
+  "bestSendTime": "one short line on the best day/time to reach them in IST"
 }`;
 }
 
@@ -58,6 +60,8 @@ export async function POST(req: Request) {
       source: "local",
       first: fallback.first,
       followUp: fallback.followUp,
+      emailSubject: fallback.emailSubject,
+      callScript: fallback.callScript,
       bestSendTime: fallback.bestSendTime,
     });
   }
@@ -65,6 +69,8 @@ export async function POST(req: Request) {
     source: "claude",
     first: result.data.first ?? "",
     followUp: result.data.followUp ?? "",
+    emailSubject: result.data.emailSubject,
+    callScript: result.data.callScript,
     bestSendTime: result.data.bestSendTime ?? "Tue–Thu, 10am–12pm IST",
   });
 }

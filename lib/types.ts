@@ -138,6 +138,13 @@ export type OutreachResult = {
   first: string;
   followUp: string;
   bestSendTime: string;
+  emailSubject?: string;
+  callScript?: {
+    hook: string;
+    observation: string;
+    offer: string;
+    objectionHandling: { objection: string; response: string }[];
+  };
   linkedinPitch?: string;
   smsPitch?: string;
 };
@@ -148,7 +155,7 @@ export type ScrapeInput = {
   count: number;
 };
 
-export type OutreachChannel = "whatsapp" | "email" | "instagram" | "linkedin" | "sms";
+export type OutreachChannel = "whatsapp" | "email" | "instagram" | "linkedin" | "sms" | "call";
 export type OutreachLanguage = "english" | "hinglish";
 
 // Competitor Analysis Types
