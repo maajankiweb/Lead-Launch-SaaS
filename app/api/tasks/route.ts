@@ -8,26 +8,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Return clean user tasks (empty array if no tasks saved yet)
     return NextResponse.json({
       success: true,
-      tasks: [
-        {
-          id: "task-1",
-          title: "Send WhatsApp audit teaser link to Dr. Ananya Sharma",
-          dueDate: new Date().toISOString().split("T")[0],
-          priority: "urgent",
-          status: "pending",
-          nextActionTag: "WhatsApp Outreach",
-        },
-        {
-          id: "task-2",
-          title: "15-Minute discovery call with Vikram Malhotra",
-          dueDate: new Date().toISOString().split("T")[0],
-          priority: "high",
-          status: "pending",
-          nextActionTag: "Scheduled Meeting",
-        },
-      ],
+      tasks: [],
     });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || "Failed to fetch tasks" }, { status: 500 });

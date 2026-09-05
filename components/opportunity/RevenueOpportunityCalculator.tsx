@@ -6,9 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calculator, TrendingUp, HelpCircle, Sparkles, RefreshCw, IndianRupee, DollarSign, ArrowRight } from "lucide-react";
-import type { RevenueAssumptions } from "@/lib/types";
+import type { Lead, RevenueAssumptions } from "@/lib/types";
 
 interface RevenueCalculatorProps {
+  lead?: Lead | null;
+  allLeads?: Lead[];
+  onSelectLead?: (leadId: string) => void;
+  onNavigateToScraper?: () => void;
   initialMonthlyVisitors?: number;
   initialAvgValue?: number;
   businessName?: string;
@@ -16,13 +20,49 @@ interface RevenueCalculatorProps {
 }
 
 export function RevenueOpportunityCalculator({
+  lead,
+  allLeads = [],
+  onSelectLead,
+  onNavigateToScraper,
   initialMonthlyVisitors = 1200,
   initialAvgValue = 3500,
-  businessName = "Prospect Business",
-  category = "Healthcare Practice",
+  businessName = "",
+  category = "",
 }: RevenueCalculatorProps) {
+  const effectiveBusinessName = lead?.name || businessName;
+  const effectiveCategory = lead?.category || category;
+
+  if (!lead && (!allLeads || allLeads.length === 0)) {
+    return (
+      <div className="rounded-3xl border border-dashed border-border/80 bg-card/40 p-12 text-center space-y-4 max-w-2xl mx-auto my-12">
+        <div className="h-16 w-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
+          <Calculator className="h-8 w-8" />
+        </div>
+        <div className="space-y-1.5">
+          <h3 className="text-xl font-bold font-display text-foreground">
+            No Prospect Available for Revenue ROI Modeling
+          </h3>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto">
+            Scrape local businesses in Phase 1 to calculate exact revenue leakages, mobile conversion upside, and annual ROI projections.
+          </p>
+        </div>
+        {onNavigateToScraper && (
+          <Button
+            onClick={onNavigateToScraper}
+            className="h-10 px-5 text-xs font-bold gap-2 shadow-lg shadow-primary/25 bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-600/90 rounded-xl"
+          >
+            <Sparkles className="h-4 w-4" /> Go to Phase 1 Scraper
+          </Button>
+        )}
+      </div>
+    );
+  }
+
   const [currency, setCurrency] = useState<"INR" | "USD">("INR");
-  const [visitors, setVisitors] = useState<number>(initialMonthlyVisitors);
+  const [visitors, setVisitors] = useState<number>(() => {
+    if (lead?.reviewsCount) return Math.max(600, lead.reviewsCount * 20);
+    return initialMonthlyVisitors;
+  });
   const [currentConvRate, setCurrentConvRate] = useState<number>(1.2);
   const [targetConvRate, setTargetConvRate] = useState<number>(3.8);
   const [avgCustomerValue, setAvgCustomerValue] = useState<number>(initialAvgValue);
@@ -76,9 +116,28 @@ export function RevenueOpportunityCalculator({
           <CardTitle className="text-xl font-bold font-display text-foreground flex items-center gap-2">
             <Calculator className="h-5 w-5 text-primary" /> Revenue Opportunity Engine
           </CardTitle>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Transparent revenue upside projection based on conversion funnel optimization for {businessName}.
-          </p>
+          {effectiveBusinessName && (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Transparent revenue upside projection based on conversion funnel optimization for <strong>{effectiveBusinessName}</strong> ({effectiveCategory || "Target Prospect"}).
+            </p>
+          )}
+
+          {allLeads && allLeads.length > 1 && onSelectLead && (
+            <div className="flex items-center gap-2 mt-2.5">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground">Select Prospect:</span>
+              <select
+                value={lead?.id}
+                onChange={(e) => onSelectLead(e.target.value)}
+                className="text-xs font-bold bg-muted/80 border border-border/80 rounded-xl px-2.5 py-1 cursor-pointer max-w-xs truncate text-foreground"
+              >
+                {allLeads.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name} ({l.category || "Business"})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2">

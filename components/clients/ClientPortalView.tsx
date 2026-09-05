@@ -18,44 +18,139 @@ import {
   Send,
   Download,
   Copy,
+  Building2,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { ClientRecord } from "@/lib/types";
 
-const INITIAL_CLIENTS: ClientRecord[] = [
-  {
-    id: "client-01",
-    name: "Dr. Rohan Kapoor",
-    company: "Kapoor Skin & Cosmetology",
-    email: "drrohan.kapoor@gmail.com",
-    phone: "+91 98204 55555",
-    website: "https://kapoorskin.in",
-    status: "active",
-    projectTitle: "Turnkey Healthcare Portal & WhatsApp Booking Engine",
-    progressPercent: 75,
-    milestones: [
-      { id: "m1", title: "Project Scope & Contract Sign-off", completed: true, dueDate: "Done" },
-      { id: "m2", title: "Clinic Content & Treatment Catalog Received", completed: true, dueDate: "Done" },
-      { id: "m3", title: "Figma UI/UX Mockup Approved", completed: true, dueDate: "Done" },
-      { id: "m4", title: "Next.js Development & WhatsApp Integration", completed: true, dueDate: "In Progress" },
-      { id: "m5", title: "Client Staging Review & Domain DNS Cutover", completed: false, dueDate: "Next Tuesday" },
-    ],
-    totalContractValue: 95000,
-    portalAccessKey: "portal_kapoor_89a3f2",
-    createdAt: new Date().toISOString(),
-  },
-];
+const INITIAL_CLIENTS: ClientRecord[] = [];
 
-export function ClientPortalView() {
+interface ClientPortalViewProps {
+  onNavigateToOutreach?: () => void;
+}
+
+export function ClientPortalView({ onNavigateToOutreach }: ClientPortalViewProps) {
   const [clients, setClients] = useState<ClientRecord[]>(() => {
     try {
       const saved = localStorage.getItem("l2l_v2_clients");
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed: ClientRecord[] = JSON.parse(saved);
+        const cleaned = parsed.filter(
+          (c) => c.id !== "client-01" && !c.name.includes("Dr. Rohan Kapoor")
+        );
+        if (cleaned.length !== parsed.length) {
+          localStorage.setItem("l2l_v2_clients", JSON.stringify(cleaned));
+        }
+        return cleaned;
+      }
     } catch {
       // ignore
     }
     return INITIAL_CLIENTS;
   });
+
+  // Sync clients with real outreach sent from database and local storage
+  React.useEffect(() => {
+    const loadClients = async () => {
+      let fetchedClients: ClientRecord[] = [];
+      try {
+        const res = await fetch("/api/clients");
+        const data = await res.json();
+        if (data.clients && Array.isArray(data.clients)) {
+          fetchedClients = data.clients.filter(
+            (c: any) => c.id !== "client-01" && !c.name.includes("Dr. Rohan Kapoor")
+          );
+        }
+      } catch {
+        // ignore
+      }
+
+      // Also read deals with outreach sent from localStorage
+      const localOutreachClients: ClientRecord[] = [];
+      try {
+        const savedDeals = localStorage.getItem("lead_to_launch_deals");
+        if (savedDeals) {
+          const parsedDeals = JSON.parse(savedDeals);
+          if (Array.isArray(parsedDeals)) {
+            const activeStages = [
+              "pitch_sent",
+              "contacted",
+              "proposal_sent",
+              "meeting_scheduled",
+              "won",
+              "closed_won",
+            ];
+            parsedDeals.forEach((deal) => {
+              if (activeStages.includes(deal.stage) && (deal.businessName || deal.company)) {
+                const name = deal.businessName || deal.company;
+                const isWon = deal.stage === "won" || deal.stage === "closed_won";
+                localOutreachClients.push({
+                  id: `client-${deal.id || name.replace(/\s+/g, "-")}`,
+                  name: deal.clientName || name,
+                  company: name,
+                  email: deal.email || "client@direct.com",
+                  phone: deal.phone || deal.whatsapp || "",
+                  website: "",
+                  status: isWon ? "active" : "onboarding",
+                  projectTitle: "Turnkey Website & Digital Growth OS",
+                  progressPercent: isWon ? 80 : 25,
+                  milestones: [
+                    { id: "m1", title: "Outreach & Pitch Sent", completed: true, dueDate: "Done" },
+                    {
+                      id: "m2",
+                      title: "Discovery Call & Demo Review",
+                      completed: isWon || deal.stage === "meeting_scheduled",
+                      dueDate: isWon ? "Done" : "In Progress",
+                    },
+                    {
+                      id: "m3",
+                      title: "Contract Scope & Pricing Sign-off",
+                      completed: isWon,
+                      dueDate: isWon ? "Done" : "Upcoming",
+                    },
+                    {
+                      id: "m4",
+                      title: "Turnkey Next.js Site Delivery",
+                      completed: isWon,
+                      dueDate: "Upcoming",
+                    },
+                    {
+                      id: "m5",
+                      title: "Domain Cutover & Live Launch",
+                      completed: false,
+                      dueDate: "Upcoming",
+                    },
+                  ],
+                  totalContractValue: deal.setupFee || deal.value || 35000,
+                  portalAccessKey: `portal_${String(deal.id || "c").slice(-6)}`,
+                  createdAt: deal.updatedAt || new Date().toISOString(),
+                });
+              }
+            });
+          }
+        }
+      } catch {
+        // ignore
+      }
+
+      setClients((prev) => {
+        const existingNames = new Set(prev.map((c) => c.company.toLowerCase()));
+        const toAdd = [...fetchedClients, ...localOutreachClients].filter(
+          (c) => !existingNames.has(c.company.toLowerCase())
+        );
+        const combined = [...prev, ...toAdd];
+        if (combined.length > 0) {
+          try {
+            localStorage.setItem("l2l_v2_clients", JSON.stringify(combined));
+          } catch {}
+        }
+        return combined;
+      });
+    };
+
+    loadClients();
+  }, []);
 
   const [activeClientIndex, setActiveClientIndex] = useState(0);
   const [ticketSubject, setTicketSubject] = useState("");
@@ -109,14 +204,50 @@ export function ClientPortalView() {
 
   if (!activeClient) {
     return (
-      <div className="p-8 text-center text-muted-foreground">
-        No active clients yet. Close a deal in the CRM to convert your first client!
+      <div className="rounded-3xl border border-dashed border-border/80 bg-card/40 p-12 text-center space-y-4 max-w-xl mx-auto my-12">
+        <div className="h-16 w-16 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto">
+          <FolderKanban className="h-8 w-8" />
+        </div>
+        <div className="space-y-1.5">
+          <h3 className="text-xl font-bold font-display text-foreground">
+            No Active Clients in Portal
+          </h3>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto">
+            Clients automatically appear here once you send an outreach message via WhatsApp, Phone Call, or Email in Phase 5, or close a deal in your CRM.
+          </p>
+        </div>
+        {onNavigateToOutreach && (
+          <Button
+            onClick={onNavigateToOutreach}
+            className="h-10 px-5 text-xs font-bold gap-2 shadow-lg shadow-primary/25 bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-600/90 rounded-xl"
+          >
+            <Send className="h-4 w-4" /> Go to Phase 5 Outreach
+          </Button>
+        )}
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* Client Switcher when multiple clients exist */}
+      {clients.length > 1 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <span className="text-xs font-semibold text-muted-foreground shrink-0 mr-1">Switch Client:</span>
+          {clients.map((c, idx) => (
+            <Button
+              key={c.id}
+              variant={idx === activeClientIndex ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveClientIndex(idx)}
+              className="text-xs h-8 rounded-xl font-bold gap-1.5 shrink-0"
+            >
+              <Building2 className="h-3.5 w-3.5" /> {c.company}
+            </Button>
+          ))}
+        </div>
+      )}
+
       {/* Top Banner */}
       <div className="rounded-3xl border border-border/80 bg-gradient-to-br from-card via-card to-primary/[0.03] p-6 sm:p-8 backdrop-blur-xl relative overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

@@ -298,8 +298,23 @@ export function CampaignManagerModal({
                 <span className="text-xs">Loading database records…</span>
               </div>
             ) : campaigns.length === 0 ? (
-              <div className="py-10 text-center border border-dashed border-border rounded-xl text-xs text-muted-foreground">
-                No saved campaigns found. Create your first campaign above to store client leads!
+              <div className="py-12 px-4 text-center border border-dashed border-border/80 rounded-2xl bg-muted/20 space-y-3">
+                <div className="h-12 w-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
+                  <FolderKanban className="h-6 w-6" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="font-bold text-sm text-foreground">No Saved Campaigns Found</h4>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    Organize your scraped leads into permanent campaigns saved directly to your cloud database.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => setShowNewForm(true)}
+                  className="h-8 text-xs font-bold gap-1.5 rounded-xl shadow-md"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Create First Campaign
+                </Button>
               </div>
             ) : (
               <div className="space-y-2.5">

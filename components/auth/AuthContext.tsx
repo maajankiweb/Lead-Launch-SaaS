@@ -44,12 +44,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = async () => {
     try {
+      const loginTimeStr = typeof window !== "undefined" ? localStorage.getItem("l2l_login_time") : null;
+      if (loginTimeStr) {
+        const loginTime = parseInt(loginTimeStr, 10);
+        // Force re-login after 24 hours (86,400,000 ms)
+        if (Date.now() - loginTime > 24 * 60 * 60 * 1000) {
+          localStorage.removeItem("l2l_login_time");
+          await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+          setUser(null);
+          setLoading(false);
+          toast.info("Your 24-hour session has expired. Please log in again.");
+          return;
+        }
+      }
+
       const res = await fetch("/api/auth/me", { cache: "no-store" });
       const data = await parseJsonResponse(res);
       if (data?.authenticated && data.user) {
         setUser(data.user);
+        if (!loginTimeStr && typeof window !== "undefined") {
+          localStorage.setItem("l2l_login_time", String(Date.now()));
+        }
       } else {
         setUser(null);
+        if (typeof window !== "undefined") localStorage.removeItem("l2l_login_time");
       }
     } catch {
       setUser(null);
@@ -76,6 +94,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (data?.user) {
         setUser(data.user);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("l2l_login_time", String(Date.now()));
+        }
         toast.success(`Welcome back, ${data.user.name}!`);
         return true;
       }
@@ -100,7 +121,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (data?.user) {
         setUser(data.user);
-        toast.success(`Logged in as ${role === "AGENCY" ? "Agency Demo" : "Freelancer Demo"}!`);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("l2l_login_time", String(Date.now()));
+        }
+        toast.success(`Logged into ${data.user.plan} Demo Workspace!`);
         return true;
       }
       return false;
@@ -125,11 +149,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       const data = await parseJsonResponse(res);
       if (!res.ok) {
-        toast.error(data?.error || `Registration failed (${res.status})`);
+        toast.error(data?.error || `Signup failed (${res.status})`);
         return false;
       }
       if (data?.user) {
         setUser(data.user);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("l2l_login_time", String(Date.now()));
+        }
         toast.success("Account created successfully!");
         return true;
       }
@@ -144,6 +171,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
       setUser(null);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("l2l_login_time");
+      }
       toast.info("Logged out successfully");
     } catch (err) {
       console.error(err);

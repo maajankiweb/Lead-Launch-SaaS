@@ -28,22 +28,105 @@ import type { Lead, AuditResult, CompetitorItem, CompetitiveReport } from "@/lib
 import { generateCompetitorReport } from "@/lib/competitorEngine";
 
 interface CompetitorAnalysisViewProps {
-  lead: Lead;
-  audit: AuditResult;
+  lead: Lead | null;
+  audit: AuditResult | null;
+  allLeads?: Lead[];
+  onSelectLead?: (leadId: string) => void;
+  onNavigateToScraper?: () => void;
   onGenerateOutreach?: () => void;
 }
 
 export function CompetitorAnalysisView({
   lead,
   audit,
+  allLeads = [],
+  onSelectLead,
+  onNavigateToScraper,
   onGenerateOutreach,
 }: CompetitorAnalysisViewProps) {
-  const [report, setReport] = useState<CompetitiveReport>(() => generateCompetitorReport(lead, audit));
+  const safeAudit = React.useMemo<AuditResult>(() => {
+    if (audit) return audit;
+    if (lead) {
+      return {
+        leadId: lead.id,
+        pageSpeedScore: 65,
+        hasWebsite: Boolean(lead.website),
+        mobileFriendly: true,
+        https: true,
+        hasSchema: true,
+        loadTimeMs: 2400,
+        gaps: [],
+        biggestGap: "Mobile conversion & speed optimization needed",
+        estLostRevenuePerMonth: 25000,
+      };
+    }
+    return {
+      leadId: "empty",
+      pageSpeedScore: 50,
+      hasWebsite: false,
+      mobileFriendly: false,
+      https: false,
+      hasSchema: false,
+      loadTimeMs: 4000,
+      gaps: [],
+      biggestGap: "",
+      estLostRevenuePerMonth: 0,
+    };
+  }, [audit, lead]);
+
+  const [report, setReport] = useState<CompetitiveReport>(() => {
+    if (!lead) {
+      return {
+        prospectId: "",
+        competitors: [],
+        summary: "No lead selected for competitor benchmarking.",
+        prospectStrengths: [],
+        competitorStrengths: [],
+        missingFeatures: [],
+        conversionGaps: [],
+        recommendedImprovements: [],
+      };
+    }
+    return generateCompetitorReport(lead, safeAudit, undefined, allLeads);
+  });
+
+  React.useEffect(() => {
+    if (lead) {
+      setReport(generateCompetitorReport(lead, safeAudit, undefined, allLeads));
+    }
+  }, [lead?.id, allLeads, safeAudit]);
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCompName, setNewCompName] = useState("");
   const [newCompUrl, setNewCompUrl] = useState("");
   const [newCompRating, setNewCompRating] = useState("4.6");
   const [newCompReviews, setNewCompReviews] = useState("65");
+
+  if (!lead) {
+    return (
+      <div className="rounded-3xl border border-dashed border-border/80 bg-card/40 p-12 text-center space-y-4 max-w-2xl mx-auto my-12">
+        <div className="h-16 w-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
+          <Target className="h-8 w-8" />
+        </div>
+        <div className="space-y-1.5">
+          <h3 className="text-xl font-bold font-display text-foreground">
+            No Prospect Selected for Competitor Analysis
+          </h3>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto">
+            To benchmark a business against real local rivals, scrape leads in Phase 1 or select an existing prospect from your pipeline.
+          </p>
+        </div>
+        {onNavigateToScraper && (
+          <Button
+            onClick={onNavigateToScraper}
+            className="h-10 px-5 text-xs font-bold gap-2 shadow-lg shadow-primary/25 bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-600/90 rounded-xl"
+          >
+            <Sparkles className="h-4 w-4" /> Go to Phase 1 Scraper
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   const handleAddCompetitor = () => {
     if (!newCompName.trim() || !newCompUrl.trim()) {
@@ -67,7 +150,7 @@ export function CompetitorAnalysisView({
     };
 
     const updatedCompetitors = [...report.competitors, newComp].slice(0, 5);
-    const updatedReport = generateCompetitorReport(lead, audit, updatedCompetitors);
+    const updatedReport = generateCompetitorReport(lead, safeAudit, updatedCompetitors, allLeads);
     setReport(updatedReport);
 
     setNewCompName("");
@@ -78,7 +161,7 @@ export function CompetitorAnalysisView({
 
   const handleRemoveCompetitor = (id: string) => {
     const updated = report.competitors.filter((c) => c.id !== id);
-    setReport(generateCompetitorReport(lead, audit, updated));
+    setReport(generateCompetitorReport(lead, safeAudit, updated, allLeads));
     toast.success("Competitor removed");
   };
 
@@ -122,6 +205,23 @@ ${report.recommendedImprovements.map((r) => `• ${r}`).join("\n")}`;
             <p className="text-xs text-muted-foreground mt-0.5">
               Comparing {lead.name} against local market leaders in {lead.city || "the area"}.
             </p>
+
+            {allLeads && allLeads.length > 1 && onSelectLead && (
+              <div className="flex items-center gap-2 mt-3">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground">Select Prospect:</span>
+                <select
+                  value={lead.id}
+                  onChange={(e) => onSelectLead(e.target.value)}
+                  className="text-xs font-bold bg-muted/80 border border-border/80 rounded-xl px-2.5 py-1.5 cursor-pointer max-w-xs truncate text-foreground"
+                >
+                  {allLeads.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name} ({l.category || "Business"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -191,17 +291,17 @@ ${report.recommendedImprovements.map((r) => `• ${r}`).join("\n")}`;
                   {lead.rating || 4.5}★ ({lead.reviewsCount || 40})
                 </TableCell>
                 <TableCell className="text-center font-mono font-bold">
-                  {audit.pageSpeedScore}/100
+                  {safeAudit.pageSpeedScore}/100
                 </TableCell>
                 <TableCell className="text-center">
-                  {audit.mobileFriendly ? (
+                  {safeAudit.mobileFriendly ? (
                     <CheckCircle2 className="h-4 w-4 text-emerald-500 inline" />
                   ) : (
                     <XCircle className="h-4 w-4 text-destructive inline" />
                   )}
                 </TableCell>
                 <TableCell className="text-center">
-                  {audit.conversionSignals?.hasWhatsAppCta ? (
+                  {safeAudit.conversionSignals?.hasWhatsAppCta ? (
                     <CheckCircle2 className="h-4 w-4 text-emerald-500 inline" />
                   ) : (
                     <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">
@@ -210,7 +310,7 @@ ${report.recommendedImprovements.map((r) => `• ${r}`).join("\n")}`;
                   )}
                 </TableCell>
                 <TableCell className="text-center">
-                  {audit.conversionSignals?.hasBookingSystem ? (
+                  {safeAudit.conversionSignals?.hasBookingSystem ? (
                     <CheckCircle2 className="h-4 w-4 text-emerald-500 inline" />
                   ) : (
                     <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">
@@ -219,70 +319,80 @@ ${report.recommendedImprovements.map((r) => `• ${r}`).join("\n")}`;
                   )}
                 </TableCell>
                 <TableCell className="text-center font-mono font-bold">
-                  {audit.seoScore ?? 50}/100
+                  {safeAudit.seoScore ?? 50}/100
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground italic">Target Prospect</TableCell>
               </TableRow>
 
               {/* Competitors Rows */}
-              {report.competitors.map((comp) => (
-                <TableRow key={comp.id} className="hover:bg-muted/40 border-border/60">
-                  <TableCell className="font-semibold text-foreground">
-                    <div className="truncate">{comp.name}</div>
-                    <a
-                      href={comp.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[10px] text-primary hover:underline inline-flex items-center gap-1 font-mono"
-                    >
-                      {comp.website.replace(/^https?:\/\//, "")} <ExternalLink className="h-2.5 w-2.5" />
-                    </a>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {comp.rating}★ ({comp.reviewsCount})
-                  </TableCell>
-                  <TableCell className="text-center font-mono font-bold text-emerald-500">
-                    {comp.pageSpeedScore}/100
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {comp.mobileFriendly ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500 inline" />
-                    ) : (
-                      <XCircle className="h-4 w-4 text-destructive inline" />
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {comp.hasWhatsApp ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500 inline" />
-                    ) : (
-                      <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                        NO
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {comp.hasBooking ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500 inline" />
-                    ) : (
-                      <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                        NO
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center font-mono font-bold">
-                    {comp.seoScore}/100
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <button
-                      onClick={() => handleRemoveCompetitor(comp.id)}
-                      className="text-muted-foreground hover:text-destructive transition p-1"
-                      title="Remove Competitor"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+              {report.competitors.length > 0 ? (
+                report.competitors.map((comp) => (
+                  <TableRow key={comp.id} className="hover:bg-muted/40 border-border/60">
+                    <TableCell className="font-semibold text-foreground">
+                      <div className="truncate">{comp.name}</div>
+                      {comp.website && (
+                        <a
+                          href={comp.website.startsWith("http") ? comp.website : `https://${comp.website}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-primary hover:underline inline-flex items-center gap-1 font-mono"
+                        >
+                          {comp.website.replace(/^https?:\/\//, "")} <ExternalLink className="h-2.5 w-2.5" />
+                        </a>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {comp.rating}★ ({comp.reviewsCount})
+                    </TableCell>
+                    <TableCell className="text-center font-mono font-bold text-emerald-500">
+                      {comp.pageSpeedScore}/100
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {comp.mobileFriendly ? (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 inline" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-destructive inline" />
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {comp.hasWhatsApp ? (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 inline" />
+                      ) : (
+                        <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                          NO
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {comp.hasBooking ? (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 inline" />
+                      ) : (
+                        <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                          NO
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center font-mono font-bold">
+                      {comp.seoScore}/100
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <button
+                        onClick={() => handleRemoveCompetitor(comp.id)}
+                        className="text-muted-foreground hover:text-destructive transition p-1 cursor-pointer"
+                        title="Remove Competitor"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={8} className="py-8 text-center text-muted-foreground text-xs">
+                    No competitors in this batch. Click &ldquo;+ Add Competitor&rdquo; above or scrape more leads in Phase 1 to benchmark against local rivals.
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </div>

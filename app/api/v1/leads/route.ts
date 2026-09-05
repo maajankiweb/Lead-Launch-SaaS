@@ -17,21 +17,24 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Fetch real leads from database
+    const leads = await db.lead.findMany({});
+
+    const data = (leads || []).map((l: any) => ({
+      id: l.id,
+      name: l.name,
+      category: l.category || "General",
+      city: l.address?.split(",")?.[1]?.trim() || "India",
+      rating: l.rating || 0,
+      reviews: l.reviews || 0,
+      opportunityScore: l.opportunityScore || 50,
+      healthGrade: (l.opportunityScore && l.opportunityScore >= 75) ? "High Opportunity" : "Standard Opportunity",
+    }));
+
     return NextResponse.json({
       success: true,
       version: "v1",
-      data: [
-        {
-          id: "lead-01",
-          name: "Smile Studio Dental Clinic",
-          category: "Dentist",
-          city: "Bandra, Mumbai",
-          rating: 4.7,
-          reviews: 142,
-          opportunityScore: 88,
-          healthGrade: "High Opportunity",
-        },
-      ],
+      data,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || "External API Error" }, { status: 500 });

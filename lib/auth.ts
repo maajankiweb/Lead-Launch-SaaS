@@ -22,6 +22,8 @@ export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
 }
 
+export const AUTH_MAX_AGE_SECONDS = 60 * 60 * 24; // 24 hours (86,400 seconds)
+
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
@@ -30,7 +32,7 @@ export async function signJWT(payload: UserSessionPayload): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("30d")
+    .setExpirationTime("24h")
     .sign(SECRET_KEY);
 }
 
@@ -61,7 +63,7 @@ export async function attachAuthCookie(
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 30, // 30 days
+    maxAge: AUTH_MAX_AGE_SECONDS, // 24 hours
     path: "/",
   });
   return token;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { hashPassword, signJWT, AUTH_COOKIE_NAME } from "@/lib/auth";
+import { hashPassword, signJWT, AUTH_COOKIE_NAME, AUTH_MAX_AGE_SECONDS } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 30,
+      maxAge: AUTH_MAX_AGE_SECONDS, // 24 hours
       path: "/",
     });
 
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 30,
+      maxAge: AUTH_MAX_AGE_SECONDS, // 24 hours
       path: "/",
     });
 

@@ -157,6 +157,111 @@ export function Phase5Outreach({
         localStorage.setItem("lead_to_launch_deals", JSON.stringify([dealData, ...list]));
         toast.success(`Saved to Deals CRM under '${stage.replace("_", " ").toUpperCase()}'!`);
       }
+
+      // Sync to l2l_v2_deals for Kanban pipeline
+      try {
+        const v2Saved = localStorage.getItem("l2l_v2_deals");
+        const v2List = v2Saved ? JSON.parse(v2Saved) : [];
+        const v2Index = v2List.findIndex((d: { id: string }) => d.id === selected.id);
+        const v2Deal = {
+          id: selected.id,
+          company: selected.name,
+          clientName: selected.name,
+          service: "Website Redesign & Conversion OS",
+          value: 35000,
+          probability: (stage as string) === "won" ? 100 : 75,
+          stage: "contacted",
+          targetDate: "Next 14 Days",
+          notes: notes || `Outreach sent via ${channel.toUpperCase()}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          leadId: selected.id,
+        };
+        if (v2Index >= 0) {
+          v2List[v2Index] = { ...v2List[v2Index], ...v2Deal };
+        } else {
+          v2List.unshift(v2Deal);
+        }
+        localStorage.setItem("l2l_v2_deals", JSON.stringify(v2List));
+      } catch {
+        // ignore
+      }
+
+      // Sync to l2l_v2_clients for Client Portal View
+      try {
+        const clientsSaved = localStorage.getItem("l2l_v2_clients");
+        const clientsList = clientsSaved ? JSON.parse(clientsSaved) : [];
+        const cIndex = clientsList.findIndex(
+          (c: { id: string; company: string }) =>
+            c.id === `client-${selected.id}` || c.company === selected.name
+        );
+        const newClient = {
+          id: `client-${selected.id}`,
+          name: selected.name,
+          company: selected.name,
+          email: customEmail || selected.email || "client@direct.com",
+          phone: selected.phone || selected.whatsapp || "",
+          website: selected.website || "",
+          status: "onboarding" as const,
+          projectTitle: "Turnkey Website & Digital Growth OS",
+          progressPercent: 25,
+          milestones: [
+            { id: "m1", title: "Outreach & Pitch Sent", completed: true, dueDate: "Done" },
+            { id: "m2", title: "Discovery Call & Demo Review", completed: false, dueDate: "In Progress" },
+            { id: "m3", title: "Contract Scope & Deposit Sign-off", completed: false, dueDate: "Upcoming" },
+            { id: "m4", title: "Turnkey Next.js Site Delivery", completed: false, dueDate: "Upcoming" },
+            { id: "m5", title: "Domain Cutover & Live Launch", completed: false, dueDate: "Upcoming" },
+          ],
+          totalContractValue: 35000,
+          portalAccessKey: `portal_${selected.id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 6)}`,
+          createdAt: new Date().toISOString(),
+        };
+        if (cIndex >= 0) {
+          clientsList[cIndex] = { ...clientsList[cIndex], ...newClient };
+        } else {
+          clientsList.unshift(newClient);
+        }
+        localStorage.setItem("l2l_v2_clients", JSON.stringify(clientsList));
+      } catch {
+        // ignore
+      }
+
+      // Sync to proposals history
+      try {
+        const propsSaved = localStorage.getItem("l2l_proposals_history");
+        const propsList = propsSaved ? JSON.parse(propsSaved) : [];
+        const newProp = {
+          id: "prop_" + Date.now(),
+          leadId: selected.id,
+          leadName: selected.name,
+          channel: channel === "call" ? "whatsapp" : channel,
+          language: lang,
+          status: "sent",
+          hookPreview: (message || "").slice(0, 140) + "...",
+          sentAt: new Date().toLocaleDateString("en-IN", { month: "short", day: "numeric" }),
+          value: 35000,
+        };
+        localStorage.setItem("l2l_proposals_history", JSON.stringify([newProp, ...propsList]));
+      } catch {
+        // ignore
+      }
+
+      // Sync to database backend via /api/deals
+      fetch("/api/deals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientName: selected.name,
+          company: selected.name,
+          service: "Turnkey Website & Digital Growth OS",
+          value: 35000,
+          stage: "pitch_sent",
+          notes: notes || `Outreach sent via ${channel.toUpperCase()}`,
+          leadId: selected.id,
+        }),
+      }).catch(() => {
+        // ignore
+      });
     } catch {
       toast.error("Could not save to CRM");
     }

@@ -43,6 +43,7 @@ export function HighPayableRadar({
 }: HighPayableRadarProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("ALL");
+  const [quickFilter, setQuickFilter] = useState<"ALL" | "NO_WEBSITE" | "HIGH_LEAKAGE" | "TOP_RATED">("ALL");
 
   // Filter & rank leads based on high-payable criteria
   const highPayableLeads = useMemo(() => {
@@ -97,9 +98,14 @@ export function HighPayableRadar({
 
       const matchesCat = filterCategory === "ALL" || item.lead.category === filterCategory;
 
-      return matchesSearch && matchesCat;
+      let matchesQuick = true;
+      if (quickFilter === "NO_WEBSITE") matchesQuick = !item.lead.website;
+      else if (quickFilter === "HIGH_LEAKAGE") matchesQuick = item.lostRevenue >= 30000;
+      else if (quickFilter === "TOP_RATED") matchesQuick = Boolean(item.lead.rating && item.lead.rating >= 4.4);
+
+      return matchesSearch && matchesCat && matchesQuick;
     });
-  }, [highPayableLeads, searchTerm, filterCategory]);
+  }, [highPayableLeads, searchTerm, filterCategory, quickFilter]);
 
   const totalLeakage = useMemo(() => {
     return highPayableLeads.reduce((acc, curr) => acc + curr.lostRevenue, 0);
@@ -175,22 +181,52 @@ export function HighPayableRadar({
           />
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <Button
-            variant={filterCategory === "ALL" ? "default" : "outline"}
+            variant={quickFilter === "ALL" && filterCategory === "ALL" ? "default" : "outline"}
             size="sm"
-            onClick={() => setFilterCategory("ALL")}
-            className="text-xs h-9 rounded-xl font-semibold"
+            onClick={() => {
+              setQuickFilter("ALL");
+              setFilterCategory("ALL");
+            }}
+            className="text-xs h-8 rounded-xl font-semibold"
           >
-            All Categories ({highPayableLeads.length})
+            All Leads ({highPayableLeads.length})
           </Button>
-          {categories.slice(0, 4).map((cat) => (
+          <Button
+            variant={quickFilter === "NO_WEBSITE" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setQuickFilter(quickFilter === "NO_WEBSITE" ? "ALL" : "NO_WEBSITE")}
+            className="text-xs h-8 rounded-xl font-semibold gap-1 text-destructive hover:text-destructive"
+          >
+            ❌ No Website ({highPayableLeads.filter((l) => !l.lead.website).length})
+          </Button>
+          <Button
+            variant={quickFilter === "HIGH_LEAKAGE" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setQuickFilter(quickFilter === "HIGH_LEAKAGE" ? "ALL" : "HIGH_LEAKAGE")}
+            className="text-xs h-8 rounded-xl font-semibold gap-1 text-orange-500 hover:text-orange-500"
+          >
+            🔥 ₹30k+ Leakage ({highPayableLeads.filter((l) => l.lostRevenue >= 30000).length})
+          </Button>
+          <Button
+            variant={quickFilter === "TOP_RATED" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setQuickFilter(quickFilter === "TOP_RATED" ? "ALL" : "TOP_RATED")}
+            className="text-xs h-8 rounded-xl font-semibold gap-1 text-amber-500 hover:text-amber-500"
+          >
+            ⭐ Top Rated 4.4+ ({highPayableLeads.filter((l) => l.lead.rating && l.lead.rating >= 4.4).length})
+          </Button>
+          {categories.slice(0, 3).map((cat) => (
             <Button
               key={cat}
               variant={filterCategory === cat ? "default" : "outline"}
               size="sm"
-              onClick={() => setFilterCategory(cat)}
-              className="text-xs h-9 rounded-xl font-semibold"
+              onClick={() => {
+                setFilterCategory(filterCategory === cat ? "ALL" : cat);
+                setQuickFilter("ALL");
+              }}
+              className="text-xs h-8 rounded-xl font-semibold"
             >
               {cat}
             </Button>
@@ -278,17 +314,26 @@ export function HighPayableRadar({
                 </Button>
 
                 {lead.phone && (
-                  <a
-                    href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
-                      `Hi ${lead.name}, noticed you have ${lead.reviewsCount || 30}+ top reviews in ${lead.city}! We generated a 60-second live website mockup to help you capture 2x more local clients.`
-                    )}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="h-9 w-9 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center justify-center transition shrink-0"
-                    title="Send WhatsApp Direct Hook"
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                  </a>
+                  <>
+                    <a
+                      href={`tel:${lead.phone.replace(/[^\d+]/g, "")}`}
+                      className="h-9 w-9 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 flex items-center justify-center transition shrink-0"
+                      title="Call Prospect Direct"
+                    >
+                      <Phone className="h-4 w-4" />
+                    </a>
+                    <a
+                      href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                        `Hi ${lead.name}, noticed you have ${lead.reviewsCount || 30}+ top reviews in ${lead.city}! We generated a 60-second live website mockup to help you capture 2x more local clients.`
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="h-9 w-9 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center justify-center transition shrink-0"
+                      title="Send WhatsApp Direct Hook"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                    </a>
+                  </>
                 )}
               </div>
             </div>

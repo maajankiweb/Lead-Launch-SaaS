@@ -41,9 +41,11 @@ import { OutreachSequenceBuilder } from "@/components/outreach/OutreachSequenceB
 import { AIProposalGenerator } from "@/components/proposals/AIProposalGenerator";
 import { SalesCopilotModal } from "@/components/copilot/SalesCopilotModal";
 
+import { generateComprehensiveAudit } from "@/lib/auditEngine";
+
 interface UnifiedProspectWorkspaceProps {
   lead: Lead | null;
-  audit: AuditResult;
+  audit?: AuditResult | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onJumpToPipeline?: (leadId: string) => void;
@@ -60,6 +62,8 @@ export function UnifiedProspectWorkspace({
   const [copilotOpen, setCopilotOpen] = useState(false);
 
   if (!lead) return null;
+
+  const effectiveAudit = audit || generateComprehensiveAudit(lead);
 
   const revs = lead.reviewsCount || 40;
   const rating = lead.rating || 4.5;
@@ -275,8 +279,8 @@ export function UnifiedProspectWorkspace({
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">SSL Encryption:</span>
-                      <span className={audit.https ? "text-emerald-500 font-bold" : "text-destructive font-bold"}>
-                        {audit.https ? "Active (HTTPS)" : "Missing (Insecure)"}
+                      <span className={effectiveAudit.https ? "text-emerald-500 font-bold" : "text-destructive font-bold"}>
+                        {effectiveAudit.https ? "Active (HTTPS)" : "Missing (Insecure)"}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -302,12 +306,14 @@ export function UnifiedProspectWorkspace({
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Est. Lost Revenue:</span>
                       <span className="font-bold text-destructive font-mono">
-                        ₹{(audit.estLostRevenuePerMonth || 45000).toLocaleString("en-IN")}/mo
+                        ₹{(effectiveAudit.estLostRevenuePerMonth || 45000).toLocaleString("en-IN")}/mo
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Primary Bottleneck:</span>
-                      <span className="font-semibold text-foreground">Mobile Booking Leak</span>
+                      <span className="text-muted-foreground">Mobile Bottleneck:</span>
+                      <span className="font-semibold text-amber-500 truncate max-w-[160px]">
+                        {effectiveAudit.biggestGap || "Speed optimization needed"}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Lead Source:</span>
@@ -341,12 +347,12 @@ export function UnifiedProspectWorkspace({
 
             {/* Tab 2: 5-Pillar Audit */}
             <TabsContent value="audit" className="m-0">
-              <AdvancedAuditView lead={lead} audit={audit} />
+              <AdvancedAuditView lead={lead} audit={effectiveAudit} />
             </TabsContent>
 
             {/* Tab 3: Competitor Benchmarks */}
             <TabsContent value="competitors" className="m-0">
-              <CompetitorAnalysisView lead={lead} audit={audit} />
+              <CompetitorAnalysisView lead={lead} audit={effectiveAudit} />
             </TabsContent>
 
             {/* Tab 4: Revenue ROI Engine */}
@@ -361,7 +367,7 @@ export function UnifiedProspectWorkspace({
             <TabsContent value="brief" className="m-0">
               <ProspectSalesBrief
                 lead={lead}
-                audit={audit}
+                audit={effectiveAudit}
                 onJumpToOutreach={() => setActiveTab("sequences")}
                 onGenerateProposal={() => setActiveTab("proposal")}
               />
@@ -369,12 +375,12 @@ export function UnifiedProspectWorkspace({
 
             {/* Tab 6: Follow-up Sequences */}
             <TabsContent value="sequences" className="m-0">
-              <OutreachSequenceBuilder lead={lead} audit={audit} />
+              <OutreachSequenceBuilder lead={lead} audit={effectiveAudit} />
             </TabsContent>
 
             {/* Tab 7: AI Proposal Generator */}
             <TabsContent value="proposal" className="m-0">
-              <AIProposalGenerator lead={lead} audit={audit} />
+              <AIProposalGenerator lead={lead} audit={effectiveAudit} />
             </TabsContent>
           </div>
         </Tabs>
@@ -384,7 +390,7 @@ export function UnifiedProspectWorkspace({
           open={copilotOpen}
           onOpenChange={setCopilotOpen}
           lead={lead}
-          audit={audit}
+          audit={effectiveAudit}
         />
       </DialogContent>
     </Dialog>

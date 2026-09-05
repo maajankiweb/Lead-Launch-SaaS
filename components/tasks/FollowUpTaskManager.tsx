@@ -22,59 +22,59 @@ import {
 import { toast } from "sonner";
 import type { TaskItem } from "@/lib/types";
 
-const INITIAL_TASKS: TaskItem[] = [
-  {
-    id: "task-1",
-    title: "Send WhatsApp audit teaser link to Dr. Ananya Sharma",
-    description: "Follow up between 11 AM - 1:30 PM regarding mobile booking gap",
-    dueDate: new Date().toISOString().split("T")[0], // Today
-    priority: "urgent",
-    status: "pending",
-    nextActionTag: "WhatsApp Outreach",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "task-2",
-    title: "15-Minute discovery call with Vikram Malhotra (Apex Orthodontics)",
-    description: "Walk through before/after speed numbers and proposal scope",
-    dueDate: new Date().toISOString().split("T")[0], // Today
-    priority: "high",
-    status: "pending",
-    nextActionTag: "Scheduled Meeting",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "task-3",
-    title: "Send final proposal contract to Dr. Mehta's Dental Hub",
-    description: "Prepare 50% advance invoice and project roadmap",
-    dueDate: new Date(Date.now() - 86400000).toISOString().split("T")[0], // Yesterday (Overdue)
-    priority: "urgent",
-    status: "overdue",
-    nextActionTag: "Contract Sign-off",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "task-4",
-    title: "Review PageSpeed metrics for Perfect Teeth Clinic",
-    description: "Run deep Core Web Vitals audit before Tuesday call",
-    dueDate: new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0], // 2 days ahead
-    priority: "medium",
-    status: "pending",
-    nextActionTag: "Technical Audit",
-    createdAt: new Date().toISOString(),
-  },
-];
+const INITIAL_TASKS: TaskItem[] = [];
 
 export function FollowUpTaskManager() {
   const [tasks, setTasks] = useState<TaskItem[]>(() => {
     try {
       const saved = localStorage.getItem("l2l_v2_tasks");
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed: TaskItem[] = JSON.parse(saved);
+        // Filter out any legacy dummy tasks
+        const cleaned = parsed.filter(
+          (t) =>
+            t.id !== "task-1" &&
+            t.id !== "task-2" &&
+            t.id !== "task-3" &&
+            t.id !== "task-4" &&
+            !t.title.includes("Dr. Ananya") &&
+            !t.title.includes("Vikram Malhotra") &&
+            !t.title.includes("Dr. Mehta") &&
+            !t.title.includes("Perfect Teeth")
+        );
+        if (cleaned.length !== parsed.length) {
+          localStorage.setItem("l2l_v2_tasks", JSON.stringify(cleaned));
+        }
+        return cleaned;
+      }
     } catch {
       // ignore
     }
     return INITIAL_TASKS;
   });
+
+  // Sync with API tasks on mount
+  React.useEffect(() => {
+    fetch("/api/tasks")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.tasks && Array.isArray(d.tasks) && d.tasks.length > 0) {
+          setTasks((prev) => {
+            const existingIds = new Set(prev.map((t) => t.id));
+            const newOnes = d.tasks.filter((t: any) => !existingIds.has(t.id));
+            if (newOnes.length > 0) {
+              const combined = [...prev, ...newOnes];
+              localStorage.setItem("l2l_v2_tasks", JSON.stringify(combined));
+              return combined;
+            }
+            return prev;
+          });
+        }
+      })
+      .catch(() => {
+        // ignore
+      });
+  }, []);
 
   const [activeFilter, setActiveFilter] = useState<"all" | "today" | "overdue" | "upcoming">("all");
   const [showAddForm, setShowAddForm] = useState(false);
@@ -360,11 +360,30 @@ export function FollowUpTaskManager() {
             );
           })}
 
-          {filteredTasks.length === 0 && (
-            <div className="text-center py-8 text-xs text-muted-foreground">
-              No tasks found for this view.
+          {tasks.length === 0 ? (
+            <div className="text-center py-12 px-4 space-y-3">
+              <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
+                <Clock className="h-6 w-6" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-bold text-sm text-foreground">No Follow-up Tasks Scheduled</h4>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                  Never let a hot deal slip away. Schedule client callbacks, audit follow-ups, and proposal reviews.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setShowAddForm(true)}
+                className="h-8 text-xs font-bold gap-1.5 rounded-xl shadow-md"
+              >
+                <Plus className="h-3.5 w-3.5" /> Schedule First Task
+              </Button>
             </div>
-          )}
+          ) : filteredTasks.length === 0 ? (
+            <div className="text-center py-8 text-xs text-muted-foreground">
+              No tasks found for this view filter.
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -384,7 +403,7 @@ export function FollowUpTaskManager() {
               <Input
                 value={newTaskTitle}
                 onChange={(e) => setNewTaskTitle(e.target.value)}
-                placeholder="e.g. Call Dr. Rajesh regarding proposal feedback"
+                placeholder="e.g. Call prospect regarding website mockup feedback"
                 className="h-9 text-xs"
               />
             </div>

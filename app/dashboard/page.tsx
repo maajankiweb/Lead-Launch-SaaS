@@ -56,6 +56,23 @@ import { toast } from "sonner";
 import Link from "next/link";
 import type { Lead, AuditResult, RankedLead } from "@/lib/types";
 
+const VALID_DASHBOARD_TABS: DashboardTab[] = [
+  "overview",
+  "phase1",
+  "phase2",
+  "phase3",
+  "phase4",
+  "phase5",
+  "radar",
+  "proposals",
+  "crm",
+  "calculator",
+  "campaigns",
+  "competitors",
+  "tasks",
+  "clients",
+];
+
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading: authLoading, logout } = useAuth();
@@ -75,6 +92,7 @@ export default function DashboardPage() {
 
   // Proposals History State
   const [proposals, setProposals] = useState<ProposalRecord[]>([]);
+  const [dealsCount, setDealsCount] = useState<number>(0);
 
   // Modals State
   const [crmOpen, setCrmOpen] = useState(false);
@@ -98,7 +116,7 @@ export default function DashboardPage() {
     setWorkspaceOpen(true);
   };
 
-  // Load saved sidebar preference from localStorage
+  // Load saved sidebar preference, proposals, deals, and active tab from URL / localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem("l2l_sidebar_collapsed");
@@ -109,10 +127,65 @@ export default function DashboardPage() {
       if (savedProposals) {
         setProposals(JSON.parse(savedProposals));
       }
+
+      // Read real deals count from local storage
+      const d1 = localStorage.getItem("lead_to_launch_deals");
+      const d2 = localStorage.getItem("l2l_v2_deals");
+      const l1 = d1 ? JSON.parse(d1) : [];
+      const l2 = d2 ? JSON.parse(d2) : [];
+      setDealsCount(Math.max(l1.length, l2.length));
+
+      // Tab reload persistence: prioritize ?tab= in URL, then localStorage
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlTab = urlParams.get("tab") as DashboardTab | null;
+      const storedTab = localStorage.getItem("l2l_active_tab") as DashboardTab | null;
+      const targetTab =
+        urlTab && VALID_DASHBOARD_TABS.includes(urlTab)
+          ? urlTab
+          : storedTab && VALID_DASHBOARD_TABS.includes(storedTab)
+          ? storedTab
+          : null;
+
+      if (targetTab) {
+        if (targetTab === "campaigns") {
+          setCampaignsOpen(true);
+        } else {
+          setActiveTab(targetTab);
+          if (targetTab === "phase1") setPhase(1);
+          else if (targetTab === "phase2") setPhase(2);
+          else if (targetTab === "phase3") setPhase(3);
+          else if (targetTab === "phase4") setPhase(4);
+          else if (targetTab === "phase5") setPhase(5);
+        }
+      }
     } catch {
       // ignore
     }
+
+    // Sync deals count from server API
+    fetch("/api/deals")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.deals && Array.isArray(d.deals)) {
+          setDealsCount(d.deals.length);
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  // Synchronize URL and localStorage on activeTab change
+  useEffect(() => {
+    try {
+      localStorage.setItem("l2l_active_tab", activeTab);
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("tab") !== activeTab) {
+        url.searchParams.set("tab", activeTab);
+        window.history.replaceState({}, "", url.toString());
+      }
+    } catch {
+      // ignore
+    }
+  }, [activeTab]);
 
   const handleToggleSidebar = () => {
     setSidebarCollapsed((prev) => {
@@ -205,9 +278,9 @@ export default function DashboardPage() {
       rankedCount,
       highPayableCount,
       proposalsSentCount,
-      dealsCount: 4, // Pulled from Deals CRM or fallback
+      dealsCount,
     };
-  }, [leads, audits, ranked, proposals]);
+  }, [leads, audits, ranked, proposals, dealsCount]);
 
   // Add proposal to tracking
   const handleAddProposal = (newP: Omit<ProposalRecord, "id" | "sentAt">) => {
@@ -359,26 +432,14 @@ export default function DashboardPage() {
   };
 
   // Active Lead and Audit for Competitor Benchmark and Revenue Engine
-  const activeLeadForResearch = useMemo<Lead>(() => {
+  const activeLeadForResearch = useMemo<Lead | null>(() => {
     if (selectedRanked) return selectedRanked;
     if (leads.length > 0) return leads[0];
-    return {
-      id: "lead-default",
-      name: "Smile Studio Dental Clinic",
-      category: "Dentist",
-      address: "Linking Road, Bandra West, Mumbai",
-      city: "Bandra, Mumbai",
-      phone: "+91 98201 11111",
-      whatsapp: "+91 98201 11111",
-      website: "https://smilestudio.in",
-      rating: 4.7,
-      reviewsCount: 142,
-      lat: 19.0596,
-      lng: 72.8295,
-    };
+    return null;
   }, [selectedRanked, leads]);
 
-  const activeAuditForResearch = useMemo<AuditResult>(() => {
+  const activeAuditForResearch = useMemo<AuditResult | null>(() => {
+    if (!activeLeadForResearch) return null;
     if (audits[activeLeadForResearch.id]) return audits[activeLeadForResearch.id];
     return generateComprehensiveAudit(activeLeadForResearch);
   }, [audits, activeLeadForResearch]);
@@ -674,21 +735,32 @@ export default function DashboardPage() {
             <CompetitorAnalysisView
               lead={activeLeadForResearch}
               audit={activeAuditForResearch}
-              onGenerateOutreach={() => handleSelectLeadForPitch(activeLeadForResearch.id)}
+              allLeads={leads}
+              onSelectLead={(id) => setSelectedId(id)}
+              onNavigateToScraper={() => handleSelectTab("phase1")}
+              onGenerateOutreach={() => {
+                if (activeLeadForResearch) {
+                  handleSelectLeadForPitch(activeLeadForResearch.id);
+                }
+              }}
             />
           )}
 
           {/* Tab 7: Revenue Opportunity Calculator */}
           {activeTab === "calculator" && (
             <RevenueOpportunityCalculator
-              businessName={activeLeadForResearch.name}
-              category={activeLeadForResearch.category}
+              lead={activeLeadForResearch}
+              allLeads={leads}
+              onSelectLead={(id) => setSelectedId(id)}
+              onNavigateToScraper={() => handleSelectTab("phase1")}
+              businessName={activeLeadForResearch?.name || ""}
+              category={activeLeadForResearch?.category || ""}
             />
           )}
 
           {/* Tab 8: Client Portals & Delivery */}
           {activeTab === "clients" && (
-            <ClientPortalView />
+            <ClientPortalView onNavigateToOutreach={() => handleSelectTab("phase5")} />
           )}
 
           {/* Tab 4: Interactive 5-Step Workflow Engine */}

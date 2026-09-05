@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Briefcase,
+  FolderKanban,
   Plus,
   Search,
   Filter,
@@ -41,47 +42,7 @@ export const STAGES: Array<{ id: CRMStage; label: string; color: string; dotColo
   { id: "lost", label: "Closed Lost", color: "border-destructive/20 bg-destructive/5", dotColor: "bg-destructive" },
 ];
 
-const INITIAL_DEALS: DealItemV2[] = [
-  {
-    id: "deal-01",
-    clientName: "Dr. Ananya Sharma",
-    company: "Sharma Dental & Implant Center",
-    service: "Turnkey Website + WhatsApp Booking",
-    value: 65000,
-    probability: 80,
-    stage: "proposal_sent",
-    targetDate: "Next Friday",
-    notes: "Reviewing proposal sent via WhatsApp. Follow-up scheduled for 11 AM.",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "deal-02",
-    clientName: "Vikram Malhotra",
-    company: "Apex Orthodontics Hub",
-    service: "Core Web Vitals Speed + Local SEO",
-    value: 45000,
-    probability: 60,
-    stage: "meeting_scheduled",
-    targetDate: "This Thursday",
-    notes: "15-minute discovery call confirmed to review mobile audit findings.",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "deal-03",
-    clientName: "Dr. Rohan Kapoor",
-    company: "Kapoor Skin & Cosmetology",
-    service: "Full Digital Growth OS",
-    value: 95000,
-    probability: 100,
-    stage: "won",
-    targetDate: "Won Yesterday",
-    notes: "Advance payment received. Ready for client portal onboarding!",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
+const INITIAL_DEALS: DealItemV2[] = [];
 
 interface KanbanPipelineProps {
   onConvertToClient?: (deal: DealItemV2) => void;
@@ -92,12 +53,75 @@ export function KanbanPipeline({ onConvertToClient, onOpenDealDetail }: KanbanPi
   const [deals, setDeals] = useState<DealItemV2[]>(() => {
     try {
       const saved = localStorage.getItem("l2l_v2_deals");
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed: DealItemV2[] = JSON.parse(saved);
+        const cleaned = parsed.filter(
+          (d) =>
+            d.id !== "deal-01" &&
+            d.id !== "deal-02" &&
+            d.id !== "deal-03" &&
+            !d.clientName.includes("Dr. Ananya") &&
+            !d.clientName.includes("Vikram Malhotra") &&
+            !d.clientName.includes("Dr. Rohan Kapoor")
+        );
+        if (cleaned.length !== parsed.length) {
+          localStorage.setItem("l2l_v2_deals", JSON.stringify(cleaned));
+        }
+        return cleaned;
+      }
     } catch {
       // ignore
     }
     return INITIAL_DEALS;
   });
+
+  // Sync with /api/deals on mount
+  React.useEffect(() => {
+    fetch("/api/deals")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.deals && Array.isArray(d.deals) && d.deals.length > 0) {
+          const mapped: DealItemV2[] = d.deals.map((deal: any) => {
+            let stage: CRMStage = "new_lead";
+            if (deal.stage === "contacted" || deal.stage === "demo_built") stage = "contacted";
+            else if (deal.stage === "pitch_sent") stage = "contacted";
+            else if (deal.stage === "meeting" || deal.stage === "meeting_scheduled" || deal.stage === "call_booked") stage = "meeting_scheduled";
+            else if (deal.stage === "proposal" || deal.stage === "proposal_sent") stage = "proposal_sent";
+            else if (deal.stage === "won" || deal.stage === "closed_won") stage = "won";
+            else if (deal.stage === "lost") stage = "lost";
+
+            return {
+              id: deal.id,
+              clientName: deal.clientName,
+              company: deal.company,
+              service: deal.service || "Website Redesign & SEO",
+              value: Number(deal.value) || 35000,
+              probability: stage === "won" ? 100 : stage === "proposal_sent" ? 75 : stage === "meeting_scheduled" ? 60 : 40,
+              stage,
+              targetDate: deal.targetDate || "Next 14 Days",
+              notes: deal.notes || "",
+              createdAt: deal.createdAt || new Date().toISOString(),
+              updatedAt: deal.updatedAt || new Date().toISOString(),
+              leadId: deal.leadId,
+            };
+          });
+
+          setDeals((prev) => {
+            const existingIds = new Set(prev.map((item) => item.id));
+            const newOnes = mapped.filter((item) => !existingIds.has(item.id));
+            if (newOnes.length > 0) {
+              const merged = [...prev, ...newOnes];
+              localStorage.setItem("l2l_v2_deals", JSON.stringify(merged));
+              return merged;
+            }
+            return prev.length === 0 ? mapped : prev;
+          });
+        }
+      })
+      .catch(() => {
+        // ignore
+      });
+  }, []);
 
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [searchQuery, setSearchQuery] = useState("");
@@ -165,6 +189,22 @@ export function KanbanPipeline({ onConvertToClient, onOpenDealDetail }: KanbanPi
     setNewCompany("");
     setNewContact("");
     toast.success(`Deal created for ${created.company}!`);
+
+    // Persist to MongoDB backend
+    fetch("/api/deals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clientName: created.clientName,
+        company: created.company,
+        service: created.service,
+        value: created.value,
+        stage: created.stage,
+        notes: created.notes || "",
+      }),
+    }).catch(() => {
+      // ignore
+    });
   };
 
   const handleDeleteDeal = (id: string) => {
@@ -297,8 +337,28 @@ export function KanbanPipeline({ onConvertToClient, onOpenDealDetail }: KanbanPi
         </div>
       </div>
 
-      {/* Kanban Board View */}
-      {viewMode === "kanban" ? (
+      {/* Deals Display Area */}
+      {deals.length === 0 ? (
+        <div className="rounded-3xl border border-dashed border-border/80 bg-card/40 p-12 text-center space-y-4 max-w-xl mx-auto my-8">
+          <div className="h-16 w-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
+            <FolderKanban className="h-8 w-8" />
+          </div>
+          <div className="space-y-1.5">
+            <h3 className="text-xl font-bold font-display text-foreground">
+              No Deals in Your Pipeline Yet
+            </h3>
+            <p className="text-xs text-muted-foreground max-w-md mx-auto">
+              Your CRM pipeline is ready. Log call outcomes from Phase 3, send proposals from Phase 5, or manually create your first opportunity.
+            </p>
+          </div>
+          <Button
+            onClick={() => setShowNewDealModal(true)}
+            className="h-10 px-5 text-xs font-bold gap-2 shadow-lg shadow-primary/25 bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-600/90 rounded-xl"
+          >
+            <Plus className="h-4 w-4" /> Create First Deal
+          </Button>
+        </div>
+      ) : viewMode === "kanban" ? (
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-4 min-w-[1400px]">
             {STAGES.map((stage) => {
@@ -449,7 +509,7 @@ export function KanbanPipeline({ onConvertToClient, onOpenDealDetail }: KanbanPi
               <Input
                 value={newCompany}
                 onChange={(e) => setNewCompany(e.target.value)}
-                placeholder="e.g. City Dental Care"
+                placeholder="e.g. Apex Health Clinic"
                 className="h-9 text-xs"
               />
             </div>
@@ -459,7 +519,7 @@ export function KanbanPipeline({ onConvertToClient, onOpenDealDetail }: KanbanPi
               <Input
                 value={newContact}
                 onChange={(e) => setNewContact(e.target.value)}
-                placeholder="e.g. Dr. Rajesh Patel"
+                placeholder="e.g. Contact Person / Decision Maker"
                 className="h-9 text-xs"
               />
             </div>

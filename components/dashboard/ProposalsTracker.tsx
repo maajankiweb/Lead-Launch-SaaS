@@ -5,6 +5,7 @@ import {
   Send,
   MessageCircle,
   Mail,
+  Phone,
   CheckCircle2,
   Clock,
   ExternalLink,
@@ -27,7 +28,7 @@ export interface ProposalRecord {
   id: string;
   leadId: string;
   leadName: string;
-  channel: "whatsapp" | "email" | "instagram";
+  channel: "whatsapp" | "email" | "instagram" | "call";
   language: "hinglish" | "english";
   status: "draft" | "sent" | "opened" | "replied" | "closed_won";
   hookPreview: string;
@@ -211,8 +212,12 @@ export function ProposalsTracker({
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-primary/10 text-primary border border-primary/20">
                         {item.channel === "whatsapp" ? (
                           <MessageCircle className="h-3 w-3 text-emerald-500" />
-                        ) : (
+                        ) : item.channel === "email" ? (
                           <Mail className="h-3 w-3 text-blue-500" />
+                        ) : item.channel === "call" ? (
+                          <Phone className="h-3 w-3 text-amber-500" />
+                        ) : (
+                          <Send className="h-3 w-3 text-pink-500" />
                         )}
                         {item.channel}
                       </span>

@@ -3,63 +3,42 @@ import type { Lead, AuditResult, CompetitorItem, CompetitiveReport } from "./typ
 export function generateCompetitorReport(
   lead: Lead,
   audit: AuditResult,
-  customCompetitors?: CompetitorItem[]
+  customCompetitors?: CompetitorItem[],
+  realScrapedLeads?: Lead[]
 ): CompetitiveReport {
   const city = lead.city || "Local City";
-  const category = lead.category || "Healthcare";
+  const category = lead.category || "Business";
   const revs = lead.reviewsCount || 45;
 
   let competitors: CompetitorItem[] = [];
 
   if (customCompetitors && customCompetitors.length > 0) {
     competitors = customCompetitors;
+  } else if (realScrapedLeads && realScrapedLeads.length > 1) {
+    // Use actual real scraped leads from the same campaign as local competitors
+    competitors = realScrapedLeads
+      .filter((l) => l.id !== lead.id)
+      .slice(0, 3)
+      .map((l, idx) => ({
+        id: `comp-${l.id || idx}`,
+        name: l.name,
+        website: l.website || (l.phone ? `tel:${l.phone}` : ""),
+        rating: l.rating || 4.2,
+        reviewsCount: l.reviewsCount || 25,
+        pageSpeedScore: l.website ? 74 : 35,
+        mobileFriendly: Boolean(l.website),
+        hasWhatsApp: Boolean(l.whatsapp || l.phone),
+        hasBooking: Boolean(l.website || l.whatsapp),
+        seoScore: l.website ? 76 : 30,
+        advantages: [
+          l.rating && l.rating >= 4.5 ? `Strong reputation (${l.rating}★)` : "Local market presence",
+          l.phone ? "Direct phone reachability" : "Active listing",
+        ],
+        gaps: !l.website ? ["No website listed on Google"] : ["Mobile conversion speed can be optimized"],
+      }));
   } else {
-    // Generate realistic local rivals in the same geography
-    const baseDomain = lead.name.toLowerCase().replace(/[^a-z]/g, "").slice(0, 8);
-    competitors = [
-      {
-        id: "comp-1",
-        name: `Apex ${category} Care`,
-        website: `https://apex${baseDomain}.in`,
-        rating: 4.8,
-        reviewsCount: Math.round(revs * 1.4),
-        pageSpeedScore: 84,
-        mobileFriendly: true,
-        hasWhatsApp: true,
-        hasBooking: true,
-        seoScore: 88,
-        advantages: ["Instant online appointment picker", "Sub-2s mobile loading", "Full schema markup"],
-        gaps: ["No evening clinic hours listed"],
-      },
-      {
-        id: "comp-2",
-        name: `City Speciality ${category}`,
-        website: `https://city${baseDomain}.com`,
-        rating: 4.6,
-        reviewsCount: Math.round(revs * 0.9),
-        pageSpeedScore: 72,
-        mobileFriendly: true,
-        hasWhatsApp: true,
-        hasBooking: false,
-        seoScore: 76,
-        advantages: ["Floating WhatsApp chat button", "Active before/after patient gallery"],
-        gaps: ["Slow desktop hero video", "Missing pricing guidance"],
-      },
-      {
-        id: "comp-3",
-        name: `Elite ${category} Studio`,
-        website: `https://elite${baseDomain}.co`,
-        rating: 4.7,
-        reviewsCount: Math.round(revs * 1.1),
-        pageSpeedScore: 68,
-        mobileFriendly: true,
-        hasWhatsApp: false,
-        hasBooking: true,
-        seoScore: 70,
-        advantages: ["Interactive calendar booking widget", "5-star Google review feed"],
-        gaps: ["No direct WhatsApp chat option", "Missing FAQ schema"],
-      },
-    ];
+    // No fabricated fake competitors
+    competitors = [];
   }
 
   // Identify Prospect Strengths
