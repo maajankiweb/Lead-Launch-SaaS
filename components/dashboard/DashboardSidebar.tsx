@@ -44,7 +44,10 @@ export type DashboardTab =
   | "proposals"
   | "crm"
   | "calculator"
-  | "campaigns";
+  | "campaigns"
+  | "competitors"
+  | "tasks"
+  | "clients";
 
 interface DashboardSidebarProps {
   activeTab: DashboardTab;
@@ -142,7 +145,28 @@ export function DashboardSidebar({
       ],
     },
     {
-      group: "AGENCY REVENUE",
+      group: "RESEARCH & BENCHMARKS",
+      items: [
+        {
+          id: "competitors" as DashboardTab,
+          label: "Competitor Analysis",
+          shortLabel: "Rivals",
+          icon: Building2,
+          badge: null,
+          highlight: false,
+        },
+        {
+          id: "calculator" as DashboardTab,
+          label: "Revenue ROI Engine",
+          shortLabel: "ROI",
+          icon: Calculator,
+          badge: null,
+          highlight: false,
+        },
+      ],
+    },
+    {
+      group: "CRM & CLOSING",
       items: [
         {
           id: "radar" as DashboardTab,
@@ -153,6 +177,22 @@ export function DashboardSidebar({
           highlight: true,
         },
         {
+          id: "crm" as DashboardTab,
+          label: "Deals Pipeline",
+          shortLabel: "Pipeline",
+          icon: Briefcase,
+          badge: metrics.dealsCount > 0 ? `${metrics.dealsCount}` : null,
+          highlight: false,
+        },
+        {
+          id: "tasks" as DashboardTab,
+          label: "Follow-up Tasks",
+          shortLabel: "Tasks",
+          icon: Clock,
+          badge: "Active",
+          highlight: false,
+        },
+        {
           id: "proposals" as DashboardTab,
           label: "Proposals & Pitches",
           shortLabel: "Proposals",
@@ -161,26 +201,23 @@ export function DashboardSidebar({
           highlight: false,
         },
         {
-          id: "crm" as DashboardTab,
-          label: "Deals CRM",
-          shortLabel: "CRM",
-          icon: Briefcase,
-          badge: metrics.dealsCount > 0 ? `${metrics.dealsCount}` : null,
-          highlight: false,
-        },
-        {
-          id: "calculator" as DashboardTab,
-          label: "Revenue Calculator",
-          shortLabel: "ROI",
-          icon: Calculator,
-          badge: null,
-          highlight: false,
-        },
-        {
           id: "campaigns" as DashboardTab,
           label: "Saved Campaigns",
           shortLabel: "Campaigns",
           icon: FolderKanban,
+          badge: null,
+          highlight: false,
+        },
+      ],
+    },
+    {
+      group: "CLIENT DELIVERY",
+      items: [
+        {
+          id: "clients" as DashboardTab,
+          label: "Client Portals",
+          shortLabel: "Clients",
+          icon: CheckCircle2,
           badge: null,
           highlight: false,
         },

@@ -8,6 +8,8 @@ const CHANNEL_RULES: Record<OutreachChannel, string> = {
   whatsapp: "WhatsApp DM. Max ~110 words. Warm, human. Emojis OK (👋 🔥 ✓). Short 2-4 line paragraphs. End with a low-friction yes/no ask.",
   email: "Email. Include a Subject line. Max ~150 words. No emoji in subject. Clear CTA.",
   instagram: "Instagram DM. Max ~45 words. Casual, one hook + demo link + soft ask.",
+  linkedin: "LinkedIn InMail/DM. Max ~90 words. Professional, executive tone. Focus on business ROI and patient acquisition.",
+  sms: "SMS Text. Max 160 characters. Concise, includes demo link and 1-tap call-to-action.",
 };
 
 function buildPrompt(lead: RankedLead, channel: OutreachChannel, language: OutreachLanguage): string {

@@ -17,6 +17,14 @@ import { DashboardSidebar, type DashboardTab } from "@/components/dashboard/Dash
 import { OverviewView } from "@/components/dashboard/OverviewView";
 import { HighPayableRadar } from "@/components/dashboard/HighPayableRadar";
 import { ProposalsTracker, type ProposalRecord } from "@/components/dashboard/ProposalsTracker";
+import { UnifiedProspectWorkspace } from "@/components/prospects/UnifiedProspectWorkspace";
+import { KanbanPipeline } from "@/components/crm/KanbanPipeline";
+import { FollowUpTaskManager } from "@/components/tasks/FollowUpTaskManager";
+import { CompetitorAnalysisView } from "@/components/competitors/CompetitorAnalysisView";
+import { RevenueOpportunityCalculator } from "@/components/opportunity/RevenueOpportunityCalculator";
+import { ClientPortalView } from "@/components/clients/ClientPortalView";
+import { enrichLeadIntelligence } from "@/lib/intelligenceEngine";
+import { generateComprehensiveAudit } from "@/lib/auditEngine";
 import { useAuth } from "@/components/auth/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -78,6 +86,17 @@ export default function DashboardPage() {
   // Active campaign in database
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
   const [activeCampaignTitle, setActiveCampaignTitle] = useState<string>("Default Pipeline");
+
+  // Master Unified Prospect Workspace State
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
+  const [workspaceLead, setWorkspaceLead] = useState<Lead | null>(null);
+
+  const handleOpenWorkspace = (targetLead: Lead) => {
+    const existingAudit = audits[targetLead.id] || generateComprehensiveAudit(targetLead);
+    const enriched = enrichLeadIntelligence(targetLead, existingAudit);
+    setWorkspaceLead(enriched);
+    setWorkspaceOpen(true);
+  };
 
   // Load saved sidebar preference from localStorage
   useEffect(() => {
@@ -324,14 +343,6 @@ export default function DashboardPage() {
 
   // Handle Tab Selection from Sidebar or Header
   const handleSelectTab = (tab: DashboardTab) => {
-    if (tab === "crm") {
-      setCrmOpen(true);
-      return;
-    }
-    if (tab === "calculator") {
-      setCalculatorOpen(true);
-      return;
-    }
     if (tab === "campaigns") {
       setCampaignsOpen(true);
       return;
@@ -346,6 +357,31 @@ export default function DashboardPage() {
     else if (tab === "phase4") setPhase(4);
     else if (tab === "phase5") setPhase(5);
   };
+
+  // Active Lead and Audit for Competitor Benchmark and Revenue Engine
+  const activeLeadForResearch = useMemo<Lead>(() => {
+    if (selectedRanked) return selectedRanked;
+    if (leads.length > 0) return leads[0];
+    return {
+      id: "lead-default",
+      name: "Smile Studio Dental Clinic",
+      category: "Dentist",
+      address: "Linking Road, Bandra West, Mumbai",
+      city: "Bandra, Mumbai",
+      phone: "+91 98201 11111",
+      whatsapp: "+91 98201 11111",
+      website: "https://smilestudio.in",
+      rating: 4.7,
+      reviewsCount: 142,
+      lat: 19.0596,
+      lng: 72.8295,
+    };
+  }, [selectedRanked, leads]);
+
+  const activeAuditForResearch = useMemo<AuditResult>(() => {
+    if (audits[activeLeadForResearch.id]) return audits[activeLeadForResearch.id];
+    return generateComprehensiveAudit(activeLeadForResearch);
+  }, [audits, activeLeadForResearch]);
 
   // Auth Loading Screen
   if (authLoading || !user) {
@@ -425,6 +461,11 @@ export default function DashboardPage() {
                 {activeTab === "phase5" && "Phase 5: Multi-Channel Outreach"}
                 {activeTab === "radar" && "High-Payable Leads Radar"}
                 {activeTab === "proposals" && "Proposals & Pitches Delivered"}
+                {activeTab === "crm" && "Agency Deals Pipeline"}
+                {activeTab === "calculator" && "Revenue Opportunity Engine"}
+                {activeTab === "tasks" && "Follow-up Task Operating System"}
+                {activeTab === "competitors" && "Competitor Benchmarking Matrix"}
+                {activeTab === "clients" && "Client Portals & Delivery"}
               </span>
             </div>
           </div>
@@ -576,9 +617,10 @@ export default function DashboardPage() {
               activeCampaignTitle={activeCampaignTitle}
               onNavigateTab={handleSelectTab}
               onSelectLeadForPitch={handleSelectLeadForPitch}
-              onOpenCrm={() => setCrmOpen(true)}
-              onOpenCalculator={() => setCalculatorOpen(true)}
+              onOpenCrm={() => setActiveTab("crm")}
+              onOpenCalculator={() => setActiveTab("calculator")}
               onOpenCampaigns={() => setCampaignsOpen(true)}
+              onOpenWorkspace={handleOpenWorkspace}
             />
           )}
 
@@ -606,6 +648,47 @@ export default function DashboardPage() {
               }}
               rankedLeads={ranked}
             />
+          )}
+
+          {/* Tab 4: Deals CRM Pipeline */}
+          {activeTab === "crm" && (
+            <KanbanPipeline
+              onConvertToClient={(deal) => {
+                setActiveTab("clients");
+                toast.success(`Client project workspace activated for ${deal.company}!`);
+              }}
+              onOpenDealDetail={(deal) => {
+                const matchedLead = leads.find((l) => l.id === deal.leadId || l.name === deal.company);
+                if (matchedLead) handleOpenWorkspace(matchedLead);
+              }}
+            />
+          )}
+
+          {/* Tab 5: Follow-up Task System */}
+          {activeTab === "tasks" && (
+            <FollowUpTaskManager />
+          )}
+
+          {/* Tab 6: Competitor Analysis & Benchmarking */}
+          {activeTab === "competitors" && (
+            <CompetitorAnalysisView
+              lead={activeLeadForResearch}
+              audit={activeAuditForResearch}
+              onGenerateOutreach={() => handleSelectLeadForPitch(activeLeadForResearch.id)}
+            />
+          )}
+
+          {/* Tab 7: Revenue Opportunity Calculator */}
+          {activeTab === "calculator" && (
+            <RevenueOpportunityCalculator
+              businessName={activeLeadForResearch.name}
+              category={activeLeadForResearch.category}
+            />
+          )}
+
+          {/* Tab 8: Client Portals & Delivery */}
+          {activeTab === "clients" && (
+            <ClientPortalView />
           )}
 
           {/* Tab 4: Interactive 5-Step Workflow Engine */}
@@ -737,6 +820,17 @@ export default function DashboardPage() {
       <UserSettingsModal
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
+      />
+
+      {/* Master Unified Prospect Intelligence Workspace */}
+      <UnifiedProspectWorkspace
+        lead={workspaceLead}
+        audit={workspaceLead ? (audits[workspaceLead.id] || generateComprehensiveAudit(workspaceLead)) : activeAuditForResearch}
+        open={workspaceOpen}
+        onOpenChange={setWorkspaceOpen}
+        onJumpToPipeline={(leadId) => {
+          setActiveTab("crm");
+        }}
       />
     </div>
   );

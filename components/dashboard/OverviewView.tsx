@@ -39,6 +39,7 @@ interface OverviewViewProps {
   onOpenCrm: () => void;
   onOpenCalculator: () => void;
   onOpenCampaigns: () => void;
+  onOpenWorkspace?: (lead: Lead) => void;
 }
 
 export function OverviewView({
@@ -52,6 +53,7 @@ export function OverviewView({
   onOpenCrm,
   onOpenCalculator,
   onOpenCampaigns,
+  onOpenWorkspace,
 }: OverviewViewProps) {
   // Metrics
   const metrics = useMemo(() => {
@@ -403,6 +405,17 @@ export function OverviewView({
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-border/60 flex items-center gap-2">
+                    {onOpenWorkspace && (
+                      <Button
+                        onClick={() => onOpenWorkspace(lead)}
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-[11px] font-bold border-primary/30 text-primary hover:bg-primary/10"
+                        title="Open Full Intelligence Workspace"
+                      >
+                        <Sparkles className="h-3 w-3" /> Intel
+                      </Button>
+                    )}
                     <Button
                       onClick={() => onSelectLeadForPitch(lead.id)}
                       size="sm"
