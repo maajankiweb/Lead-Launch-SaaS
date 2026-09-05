@@ -46,7 +46,6 @@ A top-right badge shows **"Claude Code connected"** (green) or **"not found"** (
 
 **Manual (any OS):**
 ```bash
-cd app
 npm install
 npm run dev
 # open http://localhost:3000
@@ -75,14 +74,13 @@ If the badge says **"not found"**, Phases 2–5 will show an "Install Claude Cod
 Without this, Phase 1 uses the built-in demo dataset. To scrape real businesses:
 
 ```bash
-cd app
 cp .env.local.example .env.local
 ```
 (Windows: copy `.env.local.example`, rename the copy to `.env.local`.)
 
 1. Sign up free at [apify.com](https://apify.com) (no card needed).
 2. **Settings → API & Integrations → API tokens** → copy your token (`apify_api_...`).
-3. Paste into `app/.env.local`:
+3. Paste into `.env.local`:
    ```
    APIFY_TOKEN=apify_api_xxxxxxxxxxxx
    ```

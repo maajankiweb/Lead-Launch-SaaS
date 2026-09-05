@@ -7,9 +7,8 @@ This guide explains how to run, customize, and deploy **Lead $\rightarrow$ Launc
 ## ⚡ Quick Start (Local Development)
 
 ### 1. Install Dependencies & Set Environment
-Make sure you are in the `app` directory:
+Install dependencies from the repository root:
 ```bash
-cd app
 npm install
 ```
 
@@ -63,18 +62,19 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ### Option A: Deploy on Vercel (Recommended - 2 Minutes)
 1. Push this repository to GitHub or GitLab.
 2. Go to [Vercel](https://vercel.com) $\rightarrow$ **Add New Project**.
-3. Set the **Root Directory** to `app`.
+3. Ensure the **Root Directory** is set to `./` (repository root, default). **Do NOT set it to `app`**.
 4. Add Environment Variables:
    - `JWT_SECRET`: A random 32+ character string.
    - `DATABASE_URL`: `file:./dev.db` (or PostgreSQL URL from Neon/Supabase).
    - `APIFY_TOKEN`: Your Apify Google Maps scraping token.
 5. Click **Deploy**. Your SaaS is now live with an SSL certificate!
 
+> **Note for Existing Vercel Deployments**: If you previously configured Vercel with **Root Directory: `app`** when the repo was nested, navigate to **Project Settings $\rightarrow$ General $\rightarrow$ Root Directory**, click **Edit**, reset it to `./` (empty / repo root), and save. Then redeploy with **"Redeploy with uncheck Use build cache"** to ensure clean build artifacts.
+
 ### Option B: Deploy on Hostinger / VPS / Render
 1. SSH into your VPS or open Hostinger Node.js panel.
 2. Clone repository and run:
    ```bash
-   cd app
    npm install
    npm run build
    npm run start
